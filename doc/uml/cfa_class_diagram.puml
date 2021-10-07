@@ -1,0 +1,54 @@
+@startuml
+
+class DataType {
+}
+
+class Fragment {
+    +int [] location
+    +string file
+    +string format
+    +string address
+    +string units
+}
+
+class AggregatedData {
+    +string units
+}
+
+class AggregationInstructions {
+    +string location
+    +string file
+    +string format
+    +string address
+}
+
+class AggregatedDimension {
+    +string name
+    +int length
+}
+
+class FragmentDimension {
+    +string name
+    +int length
+}
+
+class AggregationVariable {
+    +string name
+}
+
+class AggregationContainer {
+    +string path
+}
+
+AggregationVariable "1" o--> "0..*" AggregatedDimension
+AggregationVariable "1" *--> "1" AggregatedData
+AggregatedData "1" *--> "0..*" Fragment
+Fragment "1" o--> "0..*" FragmentDimension
+AggregatedDimension "1" o--o "1" FragmentDimension : ordered
+AggregationVariable "1" *--> "1" AggregationInstructions
+AggregationVariable "1" o--> "1" DataType
+Fragment "1" o--> "1" DataType
+AggregationContainer "1" o--> "0..*" AggregationVariable
+AggregationContainer "1" o--> "0..*" AggregatedDimension
+AggregationContainer "1" o--> "0..*" AggregationContainer
+@enduml
