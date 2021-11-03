@@ -1,7 +1,9 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "cfa.h"
+#include "cfa_mem.h"
 
 /*
 create an AggregatedDimension, attach it to a cfa_id
@@ -10,47 +12,42 @@ int
 cfa_def_dim(const int cfa_id, const char *name, const int len, int *cfa_dim_idp)
 {
     /* get the AggregationContainer */
-    AggregationContainer* agg_cont = NULL;
+    AggregationContainer *agg_cont = NULL;
     int cfa_err = cfa_get(cfa_id, &agg_cont);
     if (cfa_err)
         return cfa_err;
-    
-    /* check whether the AggregationContainer has Dimensions already allocated*/
+
+    /* 
+    if no dimensions have been defined previously, then the agg_cont->cfa_dimp 
+    will still be NULL
+    */
     if (!(agg_cont->cfa_dimp))
     {
-        /* create the first AggregatedDimension if none have been created so far
-        */
-        agg_cont->cfa_dimp = (AggregatedDimension*) malloc(
-            sizeof(AggregatedDimension)
-        );
-        if (!(agg_cont->cfa_dimp))
-            return CFA_MEM_ERR;
+        cfa_err = create_array(&(agg_cont->cfa_dimp), 
+                    sizeof(AggregatedDimension));
+        if (cfa_err)
+            return cfa_err;
     }
-    else
-    {
-        /* resize the array to hold one more AggregatedDimension */
-        AggregatedDimension* tmp_mem = (AggregatedDimension*) realloc(
-            agg_cont->cfa_dimp, 
-            (agg_cont->cfa_ndim+1) * sizeof(AggregatedDimension)
-        );
-        if (!tmp_mem)
-            return CFA_MEM_ERR;
-        agg_cont->cfa_dimp = tmp_mem;
-    }
-    /* get a pointer to the newly create dimension so we can assign items */
-    AggregatedDimension* new_dimp = &(agg_cont->cfa_dimp[agg_cont->cfa_ndim]);
-    /* assign the name and length */
-    new_dimp->name = (char*) malloc(sizeof(char) * strlen(name));
-    if (!(new_dimp->name))
+    /* array is created so now create and return the array node */
+    AggregatedDimension *dim_node = NULL;
+    cfa_err = create_array_node(&(agg_cont->cfa_dimp), (void**)(&dim_node));
+    if (cfa_err)
+        return cfa_err;
+
+    /* copy the length and name to the dimension */
+    dim_node->len = len;
+    dim_node->name = (char*) cfa_malloc(sizeof(char) * strlen(name));
+    if (!(dim_node->name))
         return CFA_MEM_ERR;
-    strcpy(new_dimp->name, name);
-    new_dimp->len = len;
+    strcpy(dim_node->name, name);
 
-    /* assign to the AggregationContainer */
-    agg_cont->cfa_ndim++;
+    /* get the length of the AggregatedDimension array - the id is len-1 */
+    int cfa_ndim = 0;
+    cfa_err = get_array_length(&(agg_cont->cfa_dimp), &cfa_ndim);
+    if (cfa_err)
+        return cfa_err;
+    *cfa_dim_idp = cfa_ndim - 1;
 
-    /* allocate then iterate the AggregatedDimension identifier */
-    *cfa_dim_idp = agg_cont->cfa_ndim-1;
     return CFA_NOERR;
 }
 
@@ -61,19 +58,28 @@ int
 cfa_inq_dim_id(const int cfa_id, const char* name, int *cfa_dim_idp)
 {
     /* get the AggregationContainer */
-    AggregationContainer* agg_cont = NULL;
+    AggregationContainer *agg_cont = NULL;
     int cfa_err = cfa_get(cfa_id, &agg_cont);
     if (cfa_err)
         return cfa_err;
 
     /* search through the dimensions, looking for the matching name */
-    for (int i=0; i<agg_cont->cfa_ndim; i++)
+    int cfa_ndim = 0;
+    cfa_err = get_array_length(&(agg_cont->cfa_dimp), &cfa_ndim);
+    if (cfa_err)
+        return cfa_err;
+
+    AggregatedDimension *cdim = NULL;
+    for (int i=0; i<cfa_ndim; i++)
     {
         /* dimensions that belong to a closed AggregationContainer have their
         name set to NULL */
-        if (!(agg_cont->cfa_dimp[i].name))
+        cfa_err = get_array_node(&(agg_cont->cfa_dimp), i, (void**)(&cdim));
+        if (cfa_err)
+            return cfa_err;
+        if (!(cdim->name))
             continue;
-        if (strcmp(agg_cont->cfa_dimp[i].name, name) == 0)
+        if (strcmp(cdim->name, name) == 0)
         {
             /* found, so assign and return */
             *cfa_dim_idp = i;
@@ -87,13 +93,16 @@ cfa_inq_dim_id(const int cfa_id, const char* name, int *cfa_dim_idp)
 get the number of AggregatedDimensions defined
 */
 int
-cfa_inq_ndims(const int cfa_id)
+cfa_inq_ndims(const int cfa_id, int *ndimp)
 {
-    AggregationContainer* agg_cont = NULL;
+    AggregationContainer *agg_cont = NULL;
     int cfa_err = cfa_get(cfa_id, &agg_cont);
     if (cfa_err)
         return cfa_err;
-    return agg_cont->cfa_ndim;
+    cfa_err = get_array_length(&(agg_cont->cfa_dimp), ndimp);
+    if (cfa_err)
+        return cfa_err;
+    return CFA_NOERR;
 }
 
 /* 
@@ -102,21 +111,31 @@ get the AggregatedDimension from a cfa_dim_id
 int cfa_get_dim(const int cfa_id, const int cfa_dim_id, 
                 AggregatedDimension **agg_dim)
 {
+#ifdef _DEBUG
+    /* check id is in range */
+    int cfa_ndims = 0;
+    int cfa_err_d = cfa_inq_ndims(cfa_id, &cfa_ndims);
+    if (cfa_err_d)
+        return cfa_err_d;
+    if (cfa_id < 0 || cfa_id >= cfa_ndims)
+        return CFA_DIM_NOT_FOUND_ERR;
+#endif
+
     AggregationContainer* agg_cont = NULL;
     int cfa_err = cfa_get(cfa_id, &agg_cont);
     if (cfa_err)
         return cfa_err;
 
-    /* check id is in range */
-    if (cfa_dim_id < 0 || cfa_dim_id >= agg_cont->cfa_ndim)
-        return CFA_DIM_NOT_FOUND_ERR;
-
-    /* check that the path is not NULL.  On cfa_close, the path is set to NULL 
+    /* 
+    check that the path is not NULL.  On cfa_close, the path is set to NULL 
     */
-    if (!(agg_cont->cfa_dimp[cfa_dim_id].name))
+    cfa_err = get_array_node(&(agg_cont->cfa_dimp), cfa_dim_id, 
+                             (void**)(agg_dim));
+    if (cfa_err)
+        return cfa_err;
+
+    if (!(*agg_dim)->name)
         return CFA_DIM_NOT_FOUND_ERR;
 
-    /* assign return value */
-    *agg_dim = &(agg_cont->cfa_dimp[cfa_dim_id]);
     return CFA_NOERR;
 }

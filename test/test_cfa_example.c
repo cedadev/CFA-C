@@ -3,9 +3,8 @@
 
 #include "cfa.h"
 
-#define CFA_ERR(cfa_err) if(cfa_err) {printf("CFA error: %i\n", cfa_err); return cfa_err;}
-
-int main(void)
+int
+main(void)
 {
     int cfa_err = 1;
     int cfa_id = -1;
@@ -32,15 +31,18 @@ int main(void)
     cfa_err = cfa_def_dim(cfa_id, "time", 365, &cfa_time_id);
     CFA_ERR(cfa_err);
 
-    AggregationContainer *agg_cont = NULL;
-    cfa_err = cfa_get(cfa_id, &agg_cont);
+    int ndims = 0;
+    cfa_err = cfa_inq_ndims(cfa_id, &ndims);
     CFA_ERR(cfa_err);
-    for(int i=0; i<agg_cont->cfa_ndim; i++)
+
+    AggregatedDimension *agg_dim = NULL;
+
+    for(int i=0; i<ndims; i++)
     {
-        printf("%i:%i\n", i, agg_cont->cfa_dim_idp[i]);
-        AggregatedDimension* agg_d = NULL;
-        cfa_err = cfa_get_dim(agg_cont->cfa_dim_idp[i], &agg_d);
-        printf("%s\n", agg_d->name);
+        cfa_err = cfa_get_dim(cfa_id, i, &agg_dim);
+        CFA_ERR(cfa_err)
+        printf("%i: %i : ", i, agg_dim->len);
+        printf("%s\n", agg_dim->name);
     }
 
 

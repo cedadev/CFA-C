@@ -4,40 +4,39 @@
 SRC_DIR=src
 BLD_DIR=build
 TST_DIR=test
+LIB_DIR=lib
 
-# Compiler variables
+# CFA sources
+CFA_SRC=$(SRC_DIR)/cfa_*.c
+CFA_LIB=libcfa.so
+
+# C flags
 CC = gcc
-INCLUDE_DIRS = -I$(SRC_DIR)
+CFLAGS=-I$(SRC_DIR) -std=c11
+DEBUGFLAGS=-O0 -D_DEBUG -Wall -Wextra
 
-DEBUG_FLAGS = -Wno-deprecated -O0 -g -Wall -D_DEBUG -D_GLIBC_DEBUG
-RELEASE_FLAGS = -Wno-deprecated -O3 -msse3
+# Linker flags for shared library
+SFLAGS = -shared -fPIC
 
-#FLAGS = $(RELEASE_FLAGS) $(COMMON_FLAGS)
-FLAGS = $(DEBUG_FLAGS) $(COMMON_FLAGS)
+# Linker flags for everthing else
+LFLAGS = -L$(LIB_DIR) -lcfa -lnetcdf
 
-# Linker variables
-LDFLAGS = $(FLAGS) 
-LD = gcc $(LIBRARY_DIRS)
-COMMON_LIBS = -lnetcdf
+# make everything
+all : $(CFA_LIB)
 
-CFA_O = $(BLD_DIR)/cfa_container.o $(BLD_DIR)/cfa_dim.o
-	
-$(BLD_DIR)/%.o : $(SRC_DIR)/%.c
-	$(CC) $(FLAGS) $(INCLUDE_DIRS) -c $< -o $@
+# Make the output directories
+$(LIB_DIR):
+	mkdir $(LIB_DIR)
 
-$(BLD_DIR)/%.o : $(TST_DIR)/%.c
-	$(CC) $(FLAGS) $(INCLUDE_DIRS) -c $< -o $@
+$(BLD_DIR):
+	mkdir $(BLD_DIR)
 
-test_cfa_dim : $(BLD_DIR)/test_cfa_dim.o $(CFA_O)
-	$(LD) $(FLAGS) $(INCLUDE_DIRS) $(CFA_O) $< -o $(BLD_DIR)/$@
+$(CFA_LIB) : $(CFA_SRC)
+	$(CC) $(CFLAGS) $(DEBUGFLAGS) $(SFLAGS) $^ -o $(LIB_DIR)/$@
 
-test_cfa_container : $(BLD_DIR)/test_cfa_container.o $(CFA_O)
-	$(LD) $(FLAGS) $(INCLUDE_DIRS) $(CFA_O) $< -o $(BLD_DIR)/$@
-
-test_cfa_example : $(BLD_DIR)/test_cfa_example.o $(CFA_O)
-	$(LD) $(FLAGS) $(INCLUDE_DIRS) $(CFA_O) $< -o $(BLD_DIR)/$@
-
-tests: test_cfa_dim test_cfa_container test_cfa_example
+test_cfa_% : $(TST_DIR)/test_cfa_%.c $(CFA_LIB)
+	$(CC) $(CFLAGS) $(DEBUGFLAGS) $(LFLAGS) $< -o $(BLD_DIR)/$@
 
 clean :
-	rm -r $(BLD_DIR)/*
+	rm $(LIB_DIR)/*
+	rm $(BLD_DIR)/*

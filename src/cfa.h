@@ -1,11 +1,17 @@
 #ifndef __CFA_H__
 #define __CFA_H__
 
+#include <stdio.h>
+
+#include "cfa_mem.h"
+
 #define EXTERNL extern
 
 /* ERROR constants */
 #define CFA_NOERR 0                   /* No error */
 #define CFA_MEM_ERR -1                /* Cannot create memory */
+#define CFA_MEM_LEAK -2               /* Debugging check for memory leak */
+#define CFA_BOUNDS_ERR -3             /* Bounds error in dynamic array */
 #define CFA_NOT_FOUND_ERR -10         /* Cannot find CFA Container */
 #define CFA_DIM_NOT_FOUND_ERR -20     /* Cannot find CFA Dimension */
 
@@ -19,7 +25,6 @@ typedef struct {
 typedef struct {
 
 } FragmentDimension;
-
 
 /* AggregationInstructions */
 typedef struct {
@@ -40,6 +45,7 @@ typedef struct {
 /* AggregationVariable */
 typedef struct {
     char *name;
+    int cfa_ndim;
     int *cfa_dim_idp;
 } AggregationVariable;
 
@@ -47,14 +53,11 @@ typedef struct {
 typedef struct AggregationContainer AggregationContainer;
 struct AggregationContainer {
     /* vars*/
-    AggregationVariable *cfa_varp;
-    int  cfa_nvar;
+    DynamicArray *cfa_varp;
     /* dims */
-    AggregatedDimension *cfa_dimp;
-    int  cfa_ndim;
+    DynamicArray *cfa_dimp;
     /* containers (for groups) */
-    AggregationContainer *cfa_containerp;
-    int  cfa_ncontainer;
+    DynamicArray *cfa_containerp;
 
     /* file info */
     char* path;
@@ -70,7 +73,7 @@ EXTERNL int cfa_create(const char *path, int *cfa_idp);
 EXTERNL int cfa_inq_id(const char *path, int *cfa_idp);
 
 /* get the number of AggregationContainers */
-EXTERNL int cfa_inq_n(void);
+EXTERNL int cfa_inq_n(int *ncfa);
 
 /* get the AggregationContainer from a cfa_id */
 EXTERNL int cfa_get(const int cfa_id, AggregationContainer **agg_cont);
@@ -87,7 +90,7 @@ EXTERNL int cfa_inq_dim_id(const int cfa_id, const char* name,
                            int *cfa_dim_idp);
 
 /* return the number of AggregatedDimensions that have been defined */
-EXTERNL int cfa_inq_ndims(const int cfa_id);
+EXTERNL int cfa_inq_ndims(const int cfa_id, int *ndimp);
 
 /* get the AggregatedDimension from a cfa_dim_id */
 EXTERNL int cfa_get_dim(const int cfa_id, const int cfa_dim_id, 
@@ -95,7 +98,9 @@ EXTERNL int cfa_get_dim(const int cfa_id, const int cfa_dim_id,
 
 /* create a AggregationVariable container, attach it to a cfa_id and one 
 or more cfa_dim_ids and assign it to a cfavarid */
-EXTERNL int cfa_def_var(int cfa_id, const char *name, int ndims, 
+EXTERNL int cfa_def_var(const int cfa_id, const char *name, const int ndims, 
                         int *cfa_dim_idsp, int *cfa_var_idp);
+
+#define CFA_ERR(cfa_err) if(cfa_err) {printf("CFA error: %i\n", cfa_err); return cfa_err;}
 
 #endif

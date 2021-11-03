@@ -5,7 +5,8 @@
 
 const char* test_file_path = "examples/test1.nc";
 
-void test_cfa_create(void)
+void 
+test_cfa_create(void)
 {
     /* Test the cfa_create method */
     int cfa_id = -1;
@@ -16,7 +17,8 @@ void test_cfa_create(void)
     cfa_close(cfa_id);
 }
 
-void test_cfa_close()
+void 
+test_cfa_close()
 {
     int cfa_err = 1;
     int cfa_id = 0;
@@ -31,7 +33,8 @@ void test_cfa_close()
     assert(cfa_err == CFA_NOT_FOUND_ERR);
 }
 
-void test_cfa_inq_id(void)
+void 
+test_cfa_inq_id(void)
 {
     int cfa_id = -1;
     int cfa_err = 1;
@@ -52,7 +55,8 @@ void test_cfa_inq_id(void)
     assert(cfa_err == CFA_NOT_FOUND_ERR);
 }
 
-void test_cfa_get(void)
+void 
+test_cfa_get(void)
 {
     AggregationContainer* cfa_cont = NULL;
     int cfa_err = 1;
@@ -73,7 +77,8 @@ void test_cfa_get(void)
     assert(cfa_err == CFA_NOT_FOUND_ERR);
 }
 
-void test_cfa_inq_n(void)
+void 
+test_cfa_inq_n(void)
 {
     int nfiles = cfa_inq_n();
     int cfa_id = -1;
@@ -91,7 +96,8 @@ void test_cfa_inq_n(void)
     assert(cfa_inq_n() == nfiles+1); 
 }
 
-int main()
+int 
+main(void)
 {
     /* run the unit tests */
     test_cfa_create();
