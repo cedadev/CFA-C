@@ -142,15 +142,16 @@ int get_array_node(DynamicArray **array, int node, void** ptr)
     return CFA_NOERR;
 }
 
-/* 
-get the number of used nodes in the dynamic array
-*/
-int 
-get_number_nodes(DynamicArray **array, int* n_nodes)
+int get_array_length(DynamicArray **array, int* n_nodes)
 {
+    /* get the length of the array = the number of used nodes */
     if (!(*array))
         return CFA_MEM_ERR;
+    if (!(*array)->array)
+        return CFA_MEM_ERR;
+
     *n_nodes = (*array)->used;
+
     return CFA_NOERR;
 }
 
@@ -168,20 +169,6 @@ int free_array(DynamicArray **array)
     *array = NULL;
     return CFA_NOERR;
 }
-
-int get_array_length(DynamicArray **array, int* n_nodes)
-{
-    /* get the length of the array = the number of used nodes */
-    if (!(*array))
-        return CFA_MEM_ERR;
-    if (!(*array)->array)
-        return CFA_MEM_ERR;
-
-    *n_nodes = (*array)->used;
-
-    return CFA_NOERR;
-}
-
 
 /*
 allocate memory in a resizeable array

@@ -14,6 +14,7 @@
 #define CFA_BOUNDS_ERR -3             /* Bounds error in dynamic array */
 #define CFA_NOT_FOUND_ERR -10         /* Cannot find CFA Container */
 #define CFA_DIM_NOT_FOUND_ERR -20     /* Cannot find CFA Dimension */
+#define CFA_VAR_NOT_FOUND_ERR -30     /* Cannot find CFA Variable */
 
 /* CFA-structs */
 /* DataType struct */
@@ -96,11 +97,21 @@ EXTERNL int cfa_inq_ndims(const int cfa_id, int *ndimp);
 EXTERNL int cfa_get_dim(const int cfa_id, const int cfa_dim_id, 
                         AggregatedDimension **agg_dim);
 
-/* create a AggregationVariable container, attach it to a cfa_id and one 
+/* create an AggregationVariable container, attach it to a cfa_id and one 
 or more cfa_dim_ids and assign it to a cfavarid */
 EXTERNL int cfa_def_var(const int cfa_id, const char *name, const int ndims, 
                         int *cfa_dim_idsp, int *cfa_var_idp);
 
-#define CFA_ERR(cfa_err) if(cfa_err) {printf("CFA error: %i\n", cfa_err); return cfa_err;}
+/* get the identifier of an AggregationVariable by name */
+EXTERNL int cfa_inq_var_id(const int cfa_id, const char* name, 
+                           int *cfa_dim_idp);
 
+/* get the number of AggregationVariables defined */
+EXTERNL int cfa_inq_nvars(const int cfa_id, int *nvarp);
+
+/* get the AggregationVariable from a cfa_var_id */
+EXTERNL int cfa_get_var(const int cfa_id, const int cfa_var_id,
+                        AggregationVariable **agg_var);
+
+#define CFA_ERR(cfa_err) if(cfa_err) {printf("CFA error: %i\n", cfa_err); return cfa_err;}
 #endif

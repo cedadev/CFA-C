@@ -13,8 +13,8 @@ int    cfa_memcheck(void);
 int create_array(DynamicArray **array, size_t typesize);
 int create_array_node(DynamicArray **array, void **ptr);
 int get_array_node(DynamicArray **array, int node, void **ptr);
-int free_array(DynamicArray **array);
 int get_array_length(DynamicArray **array, int* n_nodes);
+int free_array(DynamicArray **array);
 
 int allocate_array(void **ptr, int csize, int typesize);
 

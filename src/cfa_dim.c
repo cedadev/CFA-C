@@ -52,7 +52,7 @@ cfa_def_dim(const int cfa_id, const char *name, const int len, int *cfa_dim_idp)
 }
 
 /*
-get the identifier of an AggregatedDimension
+get the identifier of an AggregatedDimension by name
 */
 int
 cfa_inq_dim_id(const int cfa_id, const char* name, int *cfa_dim_idp)
@@ -67,7 +67,12 @@ cfa_inq_dim_id(const int cfa_id, const char* name, int *cfa_dim_idp)
     int cfa_ndim = 0;
     cfa_err = get_array_length(&(agg_cont->cfa_dimp), &cfa_ndim);
     if (cfa_err)
-        return cfa_err;
+    {
+        if (cfa_err == CFA_MEM_ERR)
+            return CFA_DIM_NOT_FOUND_ERR;
+        else
+            return cfa_err;
+    }
 
     AggregatedDimension *cdim = NULL;
     for (int i=0; i<cfa_ndim; i++)
@@ -99,6 +104,11 @@ cfa_inq_ndims(const int cfa_id, int *ndimp)
     int cfa_err = cfa_get(cfa_id, &agg_cont);
     if (cfa_err)
         return cfa_err;
+    if (!(agg_cont->cfa_dimp))
+    {
+        *ndimp = 0;
+        return CFA_NOERR;
+    }
     cfa_err = get_array_length(&(agg_cont->cfa_dimp), ndimp);
     if (cfa_err)
         return cfa_err;
@@ -108,8 +118,9 @@ cfa_inq_ndims(const int cfa_id, int *ndimp)
 /* 
 get the AggregatedDimension from a cfa_dim_id
 */
-int cfa_get_dim(const int cfa_id, const int cfa_dim_id, 
-                AggregatedDimension **agg_dim)
+int 
+cfa_get_dim(const int cfa_id, const int cfa_dim_id, 
+            AggregatedDimension **agg_dim)
 {
 #ifdef _DEBUG
     /* check id is in range */
@@ -117,7 +128,7 @@ int cfa_get_dim(const int cfa_id, const int cfa_dim_id,
     int cfa_err_d = cfa_inq_ndims(cfa_id, &cfa_ndims);
     if (cfa_err_d)
         return cfa_err_d;
-    if (cfa_id < 0 || cfa_id >= cfa_ndims)
+    if (cfa_dim_id < 0 || cfa_dim_id >= cfa_ndims)
         return CFA_DIM_NOT_FOUND_ERR;
 #endif
 
