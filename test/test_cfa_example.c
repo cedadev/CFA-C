@@ -16,7 +16,7 @@ main(void)
     /* Container */
     cfa_err = cfa_create("test_path", &cfa_id);
     CFA_ERR(cfa_err);
-    cfa_err = cfa_create("test_path", &cfa_id_2);
+    cfa_err = cfa_create("test_path2", &cfa_id_2);
     CFA_ERR(cfa_err);
 
     /* Dimensions */
@@ -44,7 +44,12 @@ main(void)
         printf("%i: %i : ", i, agg_dim->len);
         printf("%s\n", agg_dim->name);
     }
-
+    cfa_err = cfa_close(cfa_id);
+    CFA_ERR(cfa_err);
+    cfa_err = cfa_close(cfa_id_2);
+    CFA_ERR(cfa_err);
+    cfa_err = cfa_memcheck();
+    CFA_ERR(cfa_err);
 
     return 0;
 }

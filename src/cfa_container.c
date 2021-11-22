@@ -124,6 +124,42 @@ cfa_get(const int cfa_id, AggregationContainer **agg_cont)
     return CFA_NOERR;
 }
 
+/*
+free the memory used by the Aggregation containers
+*/
+int
+cfa_free_containers(void)
+{
+    /* get the aggregation container struct */
+    AggregationContainer *cfa_node = NULL;
+    /* get the number of none freed array nodes */
+    int n_conts = 0;
+    int cfa_err = get_array_length(&cfa_conts, &n_conts);
+    if (cfa_err)
+        return cfa_err;
+    int nfc = 0;
+    for (int i=0; i<n_conts; i++)
+    {
+        cfa_err = get_array_node(&cfa_conts, i, (void**)(&(cfa_node)));
+        if (cfa_err)
+            return cfa_err;
+        /* path of NULL indicates node has been freed */
+        if (cfa_node->path)
+            nfc += 1;
+    }
+    /* if number of non-free containers is 0 then free the array */
+    if (nfc == 0)
+    {
+        cfa_err = free_array(&cfa_conts);
+        cfa_conts = NULL;
+    }
+    if (cfa_err)
+        return cfa_err;
+    return CFA_NOERR;
+}
+
+EXTERNL int cfa_free_vars(const int);
+EXTERNL int cfa_free_dims(const int);
 /* close a CFA AggregationContainer container */
 int cfa_close(const int cfa_id)
 {
@@ -144,36 +180,26 @@ int cfa_close(const int cfa_id)
     /* check that it is valid */
     if (cfa_err)
         return cfa_err;
-
     if (cfa_node)
     {
+        /* free the variables and the dimensions */
+        cfa_err = cfa_free_vars(cfa_id);
+        if (cfa_err)
+            return cfa_err;
+        cfa_err = cfa_free_dims(cfa_id);
+        if (cfa_err)
+            return cfa_err;
         /* free memory of dynamically allocated components */
         if (cfa_node->path)
         {
             /* free the path */
-            free(cfa_node->path);
+            cfa_free(cfa_node->path, strlen(cfa_node->path));
             cfa_node->path = NULL;
         }
-        // /* free the AggregatedDimension */
-        // if (cfa_node->cfa_dimp)
-        // {
-        //     for (int i=0; i<cfa_node->cfa_ndim; i++)
-        //     {
-        //         /* get a pointer to the individual AggregatedDimension */
-        //         AggregatedDimension *agg_dim = &(cfa_node->cfa_dimp[i]);
-        //         if(agg_dim->name)
-        //         {
-        //             free(agg_dim->name);
-        //             agg_dim->name = NULL;
-        //         }
-        //     }
-
-        //     /* free the AggregatedDimension array and set to NULL */
-        //     free(cfa_node->cfa_dimp);
-        //     cfa_node->cfa_dimp = NULL;
-        //     cfa_node->cfa_ndim = 0;
-        // }
     }
-    
+    /* check and free the overall container if empty */
+    cfa_err = cfa_free_containers();
+    if (cfa_err)
+        return cfa_err;
     return CFA_NOERR;
 }

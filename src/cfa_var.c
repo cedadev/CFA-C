@@ -153,7 +153,7 @@ cfa_get_var(const int cfa_id, const int cfa_var_id,
         return CFA_VAR_NOT_FOUND_ERR;
 #endif
 
-    AggregationContainer* agg_cont = NULL;
+    AggregationContainer *agg_cont = NULL;
     int cfa_err = cfa_get(cfa_id, &agg_cont);
     if (cfa_err)
         return cfa_err;
@@ -169,5 +169,53 @@ cfa_get_var(const int cfa_id, const int cfa_var_id,
     if (!(*agg_var)->name)
         return CFA_VAR_NOT_FOUND_ERR;
 
+    return CFA_NOERR;
+}
+
+/*
+free the memory used by the CFA variables
+*/
+int
+cfa_free_vars(const int cfa_id)
+{
+    /* get the AggregationContainer */
+    AggregationContainer *agg_cont = NULL;
+    int cfa_err = cfa_get(cfa_id, &agg_cont);
+    if (cfa_err)
+        return cfa_err;
+
+    /* get the number of variables this could be zero if none created yet*/
+    int n_vars = 0;
+    if (agg_cont->cfa_varp)
+    {
+        cfa_err = get_array_length(&(agg_cont->cfa_varp), &n_vars);
+        if (cfa_err)
+            return cfa_err;    
+    }
+    else
+        return CFA_NOERR;
+
+    /* loop over all the variables and free any associated memory */
+    AggregationVariable *agg_var = NULL;
+    for (int i=0; i<n_vars; i++)
+    {
+        cfa_err = get_array_node(&(agg_cont->cfa_varp), i, (void**)(&agg_var));
+        if (cfa_err)
+            return cfa_err;
+        if (agg_var->name)
+        {
+            cfa_free(agg_var->name, strlen(agg_var->name));
+            agg_var->name = NULL;
+        }
+        if (agg_var->cfa_dim_idp && agg_var->cfa_ndim > 0)
+        {
+            cfa_free(agg_var->cfa_dim_idp, sizeof(int) * agg_var->cfa_ndim);
+            agg_var->cfa_dim_idp = NULL;
+        } 
+    }
+    /* free the array memory */
+    cfa_err = free_array(&(agg_cont->cfa_varp));
+    if (cfa_err)
+       return cfa_err;
     return CFA_NOERR;
 }

@@ -74,7 +74,10 @@ cfa_memcheck(void)
     check for a memory leak.  call this at clean-up to check that cfa_used_mem=0
     */
     if(cfa_used_mem != 0)
+    {
+        printf("Non freed bytes: %i\n", (int)(cfa_used_mem));
         return CFA_MEM_LEAK;
+    }
     return CFA_NOERR;
 }
 

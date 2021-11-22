@@ -1,5 +1,4 @@
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
 
 #include "cfa.h"
@@ -148,5 +147,48 @@ cfa_get_dim(const int cfa_id, const int cfa_dim_id,
     if (!(*agg_dim)->name)
         return CFA_DIM_NOT_FOUND_ERR;
 
+    return CFA_NOERR;
+}
+
+/*
+free the memory used by the CFA dimensions
+*/
+int
+cfa_free_dims(const int cfa_id)
+{
+    /* get the AggregationContainer */
+    AggregationContainer *agg_cont = NULL;
+    int cfa_err = cfa_get(cfa_id, &agg_cont);
+    if (cfa_err)
+        return cfa_err;
+
+    /* get the number of dimensions, this could be zero if none created yet */
+    int n_dims = 0;
+    if (agg_cont->cfa_dimp)
+    {
+        cfa_err = get_array_length(&(agg_cont->cfa_dimp), &n_dims);
+        if (cfa_err)
+            return cfa_err;
+    }
+    else
+        return CFA_NOERR;
+
+    /* loop over the dimensions, freeing memory as we go */
+    AggregatedDimension *agg_dim = NULL;
+    for (int i=0; i<n_dims; i++)
+    {
+        cfa_err = get_array_node(&(agg_cont->cfa_dimp), i, (void**)(&agg_dim));
+        if (cfa_err)
+            return cfa_err;
+        if (agg_dim->name)
+        {
+            cfa_free(agg_dim->name, strlen(agg_dim->name));
+            agg_dim->name = NULL;
+        }        
+    }
+    /* free the array memory */
+    cfa_err = free_array(&(agg_cont->cfa_dimp));
+    if (cfa_err)
+        return cfa_err;
     return CFA_NOERR;
 }
