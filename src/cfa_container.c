@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "cfa.h"
 #include "cfa_mem.h"
@@ -62,9 +63,13 @@ cfa_inq_id(const char *path, int *cfa_idp)
     AggregationContainer *cfa_node = NULL;
     /* search through the array looking for the matching path */
     int cfa_nfiles = 0;
-    int cfa_err = get_array_length(&cfa_conts, &cfa_nfiles);
-    if (cfa_err)
-        return cfa_err;
+    int cfa_err = CFA_NOERR;
+    if (cfa_conts)
+    {
+        cfa_err = get_array_length(&cfa_conts, &cfa_nfiles);
+        if (cfa_err)
+            return cfa_err;
+    }
     for (int i=0; i<cfa_nfiles; i++)
     {
         cfa_err = get_array_node(&cfa_conts, i, (void**)(&cfa_node));
@@ -91,10 +96,13 @@ to ensure closed files are not used in the other functions
 int 
 cfa_inq_n(int *ncfa)
 {
-    int cfa_err = get_array_length(&cfa_conts, ncfa);
-    if (cfa_err)
-        return cfa_err;
-    return CFA_NOERR;
+    /* first check for cfa_conts=NULL, this is 0 */
+    int cfa_err = CFA_NOERR;
+    if (!cfa_conts)
+        *ncfa = 0;
+    else
+        cfa_err = get_array_length(&cfa_conts, ncfa);
+    return cfa_err;
 }
 
 /*
@@ -179,7 +187,10 @@ int cfa_close(const int cfa_id)
     int cfa_err = cfa_get(cfa_id, &(cfa_node));
     /* check that it is valid */
     if (cfa_err)
+    {
+        printf("Err 0\n");
         return cfa_err;
+    }
     if (cfa_node)
     {
         /* free the variables and the dimensions */
@@ -201,5 +212,6 @@ int cfa_close(const int cfa_id)
     cfa_err = cfa_free_containers();
     if (cfa_err)
         return cfa_err;
+
     return CFA_NOERR;
 }

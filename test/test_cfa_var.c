@@ -49,8 +49,8 @@ test_cfa_def_var(void)
     /* close the AggregationContainer */
     cfa_err = cfa_close(cfa_file_id);
     assert(cfa_err == CFA_NOERR);
-    // cfa_err = cfa_memcheck();
-    // assert(cfa_err == CFA_NOERR);
+    cfa_err = cfa_memcheck();
+    assert(cfa_err == CFA_NOERR);
 }
 
 void 
@@ -85,8 +85,8 @@ test_cfa_inq_var_id(void)
     assert(cfa_err == CFA_NOERR);
     cfa_err = cfa_inq_var_id(cfa_id, var_name, &cfa_var_id);
     assert(cfa_err == CFA_NOT_FOUND_ERR);
-    // cfa_err = cfa_memcheck();
-    // assert(cfa_err == CFA_NOERR);
+    cfa_err = cfa_memcheck();
+    assert(cfa_err == CFA_NOERR);
 }
 
 void 
@@ -116,8 +116,8 @@ test_cfa_inq_nvars(void)
     /* close the container, check the memory */
     cfa_err = cfa_close(cfa_id);
     assert(cfa_err == CFA_NOERR);
-    // cfa_err = cfa_memcheck();
-    // assert(cfa_err == CFA_NOERR);
+    cfa_err = cfa_memcheck();
+    assert(cfa_err == CFA_NOERR);
 }
 
 void 
@@ -154,8 +154,8 @@ test_cfa_get_var(void)
     assert(cfa_err == CFA_NOERR);
     cfa_err = cfa_get_var(cfa_id, cfa_var_id, &cfa_var);
     assert(cfa_err == CFA_NOT_FOUND_ERR);
-    // cfa_err = cfa_memcheck();
-    // assert(cfa_err == CFA_NOERR);
+    cfa_err = cfa_memcheck();
+    assert(cfa_err == CFA_NOERR);
 }
 
 int

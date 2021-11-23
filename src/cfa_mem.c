@@ -130,22 +130,26 @@ create_array_node(DynamicArray **array, void** ptr)
     return CFA_NOERR;
 }
 
-int get_array_node(DynamicArray **array, int node, void** ptr)
+int 
+get_array_node(DynamicArray **array, int node, void** ptr)
 {
-#ifdef _DEBUG
-    /* bounds check in debug mode */
-    if (node >= (*array)->used)
-        return CFA_BOUNDS_ERR;
-#endif
     if (!(*array))
         return CFA_MEM_ERR;
-    /* to get the node we have to cast the array->array to char* and add the
-    node * array->typesize */
+#ifdef _DEBUG
+    /* bounds check in debug mode */
+    if (node < 0 || node >= (*array)->used)
+        return CFA_BOUNDS_ERR;
+#endif
+    if (!(*array)->array)
+        return CFA_MEM_ERR;
+    /* to get the node we have to add the node * array->typesize to the array 
+       start address */
     *ptr = (*array)->array + node * (*array)->typesize;
     return CFA_NOERR;
 }
 
-int get_array_length(DynamicArray **array, int* n_nodes)
+int 
+get_array_length(DynamicArray **array, int* n_nodes)
 {
     /* get the length of the array = the number of used nodes */
     if (!(*array))
@@ -157,6 +161,38 @@ int get_array_length(DynamicArray **array, int* n_nodes)
 
     return CFA_NOERR;
 }
+
+// int 
+// delete_array_node(DynamicArray **array, int node)
+// {
+//     /* delete an array node by simply shuffling the array down from the node to
+//     be deleted */
+//     if (!(*array))
+//         return CFA_MEM_ERR;
+// #ifdef _DEBUG
+//     /* bounds check in debug mode */
+//     if (node < 0 || node >= (*array)->used)
+//         return CFA_BOUNDS_ERR;
+// #endif
+//     if (!(*array)->array)
+//         return CFA_MEM_ERR;
+
+//     int cfa_err = CFA_NOERR;
+//     for (int i=node+1; i<(*array)->used; i++)
+//     {
+//         void *ptr2 = NULL;
+//         cfa_err = get_array_node(array, i, &ptr2);
+//         if (cfa_err)
+//             return cfa_err;
+//         void *ptr1 = NULL;
+//         cfa_err = get_array_node(array, i-1, &ptr1);
+//         if (cfa_err)
+//             return cfa_err;
+//         ptr1 = ptr2;
+//     }
+//     (*array)->used--;
+//     return CFA_NOERR;
+// }
 
 int free_array(DynamicArray **array)
 {

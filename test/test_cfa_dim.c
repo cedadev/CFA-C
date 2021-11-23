@@ -29,8 +29,8 @@ test_cfa_def_dim(void)
     /* close / remove the AggregationContainer */
     cfa_close(cfa_id);
     assert(cfa_err == CFA_NOERR);
-    // cfa_err = cfa_memcheck();
-    // assert(cfa_err == CFA_NOERR);
+    cfa_err = cfa_memcheck();
+    assert(cfa_err == CFA_NOERR);
 }
 
 void 
@@ -66,8 +66,8 @@ test_cfa_inq_dim_id(void)
     assert(cfa_err == CFA_NOERR);
     cfa_err = cfa_inq_dim_id(cfa_id, dim_name, &cfa_dim_id);
     assert(cfa_err == CFA_NOT_FOUND_ERR);
-    // cfa_err = cfa_memcheck();
-    // assert(cfa_err == CFA_NOERR);
+    cfa_err = cfa_memcheck();
+    assert(cfa_err == CFA_NOERR);
 }
 
 void 
@@ -98,8 +98,8 @@ test_cfa_inq_ndims(void)
     /* close the container, check the memory */
     cfa_err = cfa_close(cfa_id);
     assert(cfa_err == CFA_NOERR);
-    // cfa_err = cfa_memcheck();
-    // assert(cfa_err == CFA_NOERR);
+    cfa_err = cfa_memcheck();
+    assert(cfa_err == CFA_NOERR);
 }
 
 void 
@@ -137,8 +137,8 @@ test_cfa_get_dim(void)
     assert(cfa_err == CFA_NOERR);
     cfa_err = cfa_get_dim(cfa_id, cfa_dim_id, &cfa_dim);
     assert(cfa_err == CFA_NOT_FOUND_ERR);
-    // cfa_err = cfa_memcheck();
-    // assert(cfa_err == CFA_NOERR);
+    cfa_err = cfa_memcheck();
+    assert(cfa_err == CFA_NOERR);
 }
 
 int 

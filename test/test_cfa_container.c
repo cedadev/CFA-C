@@ -17,7 +17,12 @@ test_cfa_create(void)
     cfa_err = cfa_inq_n(&n_conts);
     assert(cfa_err == CFA_NOERR);
     assert(cfa_id == n_conts-1);
-    cfa_close(cfa_id);
+    /* close the file */
+    cfa_err = cfa_close(cfa_id);
+    assert(cfa_err == CFA_NOERR);
+    /* check the memory is freed */
+    cfa_err = cfa_memcheck();
+    assert(cfa_err == CFA_NOERR);
 }
 
 void 
@@ -34,6 +39,9 @@ test_cfa_close()
     /* try to close again */
     cfa_err = cfa_close(cfa_id);
     assert(cfa_err == CFA_NOT_FOUND_ERR);
+    /* check the memory is freed */
+    cfa_err = cfa_memcheck();
+    assert(cfa_err == CFA_NOERR);
 }
 
 void 
@@ -59,6 +67,9 @@ test_cfa_inq_id(void)
     assert(cfa_err == CFA_NOERR);
     cfa_err = cfa_inq_id(test_file_path, &cfa_id);
     assert(cfa_err == CFA_NOT_FOUND_ERR);
+    /* check the memory is freed */
+    cfa_err = cfa_memcheck();
+    assert(cfa_err == CFA_NOERR);
 }
 
 void 
@@ -73,7 +84,7 @@ test_cfa_get(void)
     assert(cfa_err == CFA_NOERR);
     cfa_err = cfa_inq_n(&n_conts);
     assert(cfa_err == CFA_NOERR);
-    assert(cfa_id = n_conts-1);
+    assert(cfa_id == n_conts-1);
     /* get the newly created AggregationContainer */
     cfa_err = cfa_get(cfa_id, &cfa_cont);
     assert(cfa_err == CFA_NOERR);
@@ -84,6 +95,9 @@ test_cfa_get(void)
     assert(cfa_err == CFA_NOERR);
     cfa_err = cfa_get(cfa_id, &cfa_cont);
     assert(cfa_err == CFA_NOT_FOUND_ERR);
+    /* check the memory is freed */
+    cfa_err = cfa_memcheck();
+    assert(cfa_err == CFA_NOERR);
 }
 
 void 
@@ -106,10 +120,12 @@ test_cfa_inq_n(void)
     cfa_err = cfa_close(cfa_id);
     assert(cfa_err == CFA_NOERR);
 
-    /* this looks strange, but it's because closed files  are not deleted from
-       the array for performance and ease-of-implementation reasons */
     cfa_err = cfa_inq_n(&n_conts);
-    assert(n_conts == n_files+1); 
+    assert(n_conts == n_files);
+
+    /* check the memory is freed */
+    cfa_err = cfa_memcheck();
+    assert(cfa_err == CFA_NOERR);
 }
 
 int 
