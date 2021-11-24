@@ -4,6 +4,7 @@
 
 #include "cfa.h"
 #include "cfa_mem.h"
+#include "parsers/cfa_netcdf.h"
 
 /* Start of the resizeable array in memory */
 static DynamicArray *cfa_conts = NULL;
@@ -53,6 +54,32 @@ cfa_create(const char *path, int *cfa_idp)
 
     return CFA_NOERR;
 }
+
+/*
+load a file from disk.  We may support different formats of CFA-netCDF files in 
+the future, or different file formats to hold the CFA info.
+*/
+
+int 
+cfa_load(const char *path, CFAFileFormat format, int *cfa_idp)
+{
+    int cfa_err = CFA_NOERR;
+    switch (format)
+    {
+        case CFA_UNKNOWN:
+            return CFA_UNKNOWN_FILE_FORMAT;
+        break;
+        case CFA_NETCDF:
+            cfa_err = parse_netcdf_file(path);
+            if (cfa_err)
+                return cfa_err;
+        break;
+        default:
+            return CFA_UNKNOWN_FILE_FORMAT;
+    }
+    return cfa_err;
+}
+
 
 /*
 get the identifier of a CFA AggregationContainer by the path name
@@ -166,8 +193,8 @@ cfa_free_containers(void)
     return CFA_NOERR;
 }
 
-EXTERNL int cfa_free_vars(const int);
-EXTERNL int cfa_free_dims(const int);
+extern int cfa_free_vars(const int);
+extern int cfa_free_dims(const int);
 /* close a CFA AggregationContainer container */
 int cfa_close(const int cfa_id)
 {

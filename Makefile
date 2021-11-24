@@ -7,7 +7,7 @@ TST_DIR=test
 LIB_DIR=lib
 
 # CFA sources
-CFA_SRC=$(SRC_DIR)/cfa_*.c
+CFA_SRC=$(SRC_DIR)/cfa_*.c $(SRC_DIR)/parsers/cfa_*.c
 CFA_LIB=libcfa.so
 
 # C flags
@@ -32,7 +32,7 @@ $(BLD_DIR):
 	mkdir $(BLD_DIR)
 
 $(CFA_LIB) : $(CFA_SRC)
-	$(CC) $(CFLAGS) $(DEBUGFLAGS) $(SFLAGS) $^ -o $(LIB_DIR)/$@
+	$(CC) $(CFLAGS) $(DEBUGFLAGS) $(SFLAGS) -lnetcdf $^ -o $(LIB_DIR)/$@
 
 test_cfa_% : $(TST_DIR)/test_cfa_%.c $(CFA_LIB)
 	$(CC) $(CFLAGS) $(DEBUGFLAGS) $(LFLAGS) $< -o $(BLD_DIR)/$@
