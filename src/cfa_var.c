@@ -14,8 +14,8 @@ cfa_def_var(int cfa_id, const char *name, int ndims, int *cfa_dim_idsp,
     /* get the aggregation container */
     AggregationContainer* agg_cont = NULL;
     int cfa_err = cfa_get(cfa_id, &agg_cont);
-    if (cfa_err)
-        return cfa_err;
+    CFA_CHECK(cfa_err);
+
     /*
     if no variables have been defined previously, then the agg_cont->cfa_varp 
     pointer will be NULL
@@ -24,14 +24,12 @@ cfa_def_var(int cfa_id, const char *name, int ndims, int *cfa_dim_idsp,
     {
         cfa_err = create_array(&(agg_cont->cfa_varp),
                     sizeof(AggregationVariable));
-        if (cfa_err)
-            return cfa_err;
+        CFA_CHECK(cfa_err);
     }
     /* Array is create so now allocate and return the array node */
     AggregationVariable *var_node = NULL;
     cfa_err = create_array_node(&(agg_cont->cfa_varp), (void**)(&var_node));
-    if (cfa_err)
-        return cfa_err;
+    CFA_CHECK(cfa_err);
 
     /* assign the name */
     var_node->name = (char*) cfa_malloc(sizeof(char) * strlen(name));
@@ -45,8 +43,8 @@ cfa_def_var(int cfa_id, const char *name, int ndims, int *cfa_dim_idsp,
     
     int n_cfa_dims = -1;
     cfa_err = cfa_inq_ndims(cfa_id, &n_cfa_dims);
-    if (cfa_err)
-        return cfa_err;
+    CFA_CHECK(cfa_err);
+
     for (int i=0; i<ndims; i++)
     {
         if (cfa_dim_idsp[i] < 0 || cfa_dim_idsp[i] >= n_cfa_dims)
@@ -63,8 +61,16 @@ cfa_def_var(int cfa_id, const char *name, int ndims, int *cfa_dim_idsp,
     /* allocate the AggregationVariable identifier */
     int cfa_nvar = 0;
     cfa_err = get_array_length(&(agg_cont->cfa_varp), &cfa_nvar);
-    if (cfa_err)
-        return cfa_err;
+    CFA_CHECK(cfa_err);
+
+    /* allocate the AggregationInstructions struct */
+    var_node->cfa_instructionsp = cfa_malloc(sizeof(AggregationInstructions));
+    var_node->cfa_instructionsp->address = NULL;
+    var_node->cfa_instructionsp->location = NULL;
+    var_node->cfa_instructionsp->file = NULL;
+    var_node->cfa_instructionsp->format = NULL;
+    
+    /* write back the cfa_var_id */
     *cfa_var_idp = cfa_nvar - 1;
 
     return CFA_NOERR;
@@ -79,8 +85,7 @@ cfa_inq_var_id(const int cfa_id, const char* name, int *cfa_var_idp)
     /* get the AggregationContainer with cfa_id */
     AggregationContainer *agg_cont = NULL;
     int cfa_err = cfa_get(cfa_id, &agg_cont);
-    if (cfa_err)
-        return cfa_err;
+    CFA_CHECK(cfa_err);
 
     /* search through the variables, looking for the matching name */
     int cfa_nvar = 0;
@@ -99,8 +104,8 @@ cfa_inq_var_id(const int cfa_id, const char* name, int *cfa_var_idp)
         /* variables that belong to a closed AggregationContainer have their
         name set to NULL */
         cfa_err = get_array_node(&(agg_cont->cfa_varp), i, (void**)(&cvar));
-        if (cfa_err)
-            return cfa_err;
+        CFA_CHECK(cfa_err);
+
         if (!(cvar->name))
             continue;
         if (strcmp(cvar->name, name) == 0)
@@ -121,16 +126,15 @@ cfa_inq_nvars(const int cfa_id, int *nvarp)
 {
     AggregationContainer *agg_cont = NULL;
     int cfa_err = cfa_get(cfa_id, &agg_cont);
-    if (cfa_err)
-        return cfa_err;
+    CFA_CHECK(cfa_err);
     if (!(agg_cont->cfa_varp))
     {
         *nvarp = 0;
         return CFA_NOERR;
     }
     cfa_err = get_array_length(&(agg_cont->cfa_varp), nvarp);
-    if (cfa_err)
-        return cfa_err;
+    CFA_CHECK(cfa_err);
+
     return CFA_NOERR;
 }
 
@@ -155,16 +159,14 @@ cfa_get_var(const int cfa_id, const int cfa_var_id,
 
     AggregationContainer *agg_cont = NULL;
     int cfa_err = cfa_get(cfa_id, &agg_cont);
-    if (cfa_err)
-        return cfa_err;
+    CFA_CHECK(cfa_err);
 
     /* 
     check that the path is not NULL.  On cfa_close, the path is set to NULL 
     */
     cfa_err = get_array_node(&(agg_cont->cfa_varp), cfa_var_id, 
                              (void**)(agg_var));
-    if (cfa_err)
-        return cfa_err;
+    CFA_CHECK(cfa_err);
 
     if (!(*agg_var)->name)
         return CFA_VAR_NOT_FOUND_ERR;
@@ -181,16 +183,13 @@ cfa_free_vars(const int cfa_id)
     /* get the AggregationContainer */
     AggregationContainer *agg_cont = NULL;
     int cfa_err = cfa_get(cfa_id, &agg_cont);
-    if (cfa_err)
-        return cfa_err;
-
+    CFA_CHECK(cfa_err);
     /* get the number of variables this could be zero if none created yet*/
     int n_vars = 0;
     if (agg_cont->cfa_varp)
     {
         cfa_err = get_array_length(&(agg_cont->cfa_varp), &n_vars);
-        if (cfa_err)
-            return cfa_err;    
+        CFA_CHECK(cfa_err); 
     }
     else
         return CFA_NOERR;
@@ -200,8 +199,7 @@ cfa_free_vars(const int cfa_id)
     for (int i=0; i<n_vars; i++)
     {
         cfa_err = get_array_node(&(agg_cont->cfa_varp), i, (void**)(&agg_var));
-        if (cfa_err)
-            return cfa_err;
+        CFA_CHECK(cfa_err);
         if (agg_var->name)
         {
             cfa_free(agg_var->name, strlen(agg_var->name));
@@ -211,11 +209,33 @@ cfa_free_vars(const int cfa_id)
         {
             cfa_free(agg_var->cfa_dim_idp, sizeof(int) * agg_var->cfa_ndim);
             agg_var->cfa_dim_idp = NULL;
-        } 
+        }
+        if (agg_var->cfa_instructionsp)
+        {
+            /* free the cfa instructions and their strings */
+            if (agg_var->cfa_instructionsp->location)
+                cfa_free(agg_var->cfa_instructionsp->location,
+                         strlen(agg_var->cfa_instructionsp->location) * 
+                         sizeof(char));
+            if (agg_var->cfa_instructionsp->address)
+                cfa_free(agg_var->cfa_instructionsp->address,
+                         strlen(agg_var->cfa_instructionsp->address) * 
+                         sizeof(char));
+            if (agg_var->cfa_instructionsp->file)
+                cfa_free(agg_var->cfa_instructionsp->file,
+                         strlen(agg_var->cfa_instructionsp->file) * 
+                         sizeof(char));
+            if (agg_var->cfa_instructionsp->format)
+                cfa_free(agg_var->cfa_instructionsp->format,
+                         strlen(agg_var->cfa_instructionsp->format) * 
+                         sizeof(char));
+            cfa_free(agg_var->cfa_instructionsp, 
+                     sizeof(AggregationInstructions));
+            agg_var->cfa_instructionsp = NULL;
+        }
     }
     /* free the array memory */
     cfa_err = free_array(&(agg_cont->cfa_varp));
-    if (cfa_err)
-       return cfa_err;
+    CFA_CHECK(cfa_err);
     return CFA_NOERR;
 }

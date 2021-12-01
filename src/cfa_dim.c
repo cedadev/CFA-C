@@ -13,8 +13,7 @@ cfa_def_dim(const int cfa_id, const char *name, const int len, int *cfa_dim_idp)
     /* get the AggregationContainer */
     AggregationContainer *agg_cont = NULL;
     int cfa_err = cfa_get(cfa_id, &agg_cont);
-    if (cfa_err)
-        return cfa_err;
+    CFA_CHECK(cfa_err);
 
     /* 
     if no dimensions have been defined previously, then the agg_cont->cfa_dimp 
@@ -24,14 +23,12 @@ cfa_def_dim(const int cfa_id, const char *name, const int len, int *cfa_dim_idp)
     {
         cfa_err = create_array(&(agg_cont->cfa_dimp), 
                     sizeof(AggregatedDimension));
-        if (cfa_err)
-            return cfa_err;
+        CFA_CHECK(cfa_err);
     }
     /* array is created so now create and return the array node */
     AggregatedDimension *dim_node = NULL;
     cfa_err = create_array_node(&(agg_cont->cfa_dimp), (void**)(&dim_node));
-    if (cfa_err)
-        return cfa_err;
+    CFA_CHECK(cfa_err);
 
     /* copy the length and name to the dimension */
     dim_node->len = len;
@@ -43,8 +40,8 @@ cfa_def_dim(const int cfa_id, const char *name, const int len, int *cfa_dim_idp)
     /* get the length of the AggregatedDimension array - the id is len-1 */
     int cfa_ndim = 0;
     cfa_err = get_array_length(&(agg_cont->cfa_dimp), &cfa_ndim);
-    if (cfa_err)
-        return cfa_err;
+    CFA_CHECK(cfa_err);
+
     *cfa_dim_idp = cfa_ndim - 1;
 
     return CFA_NOERR;
@@ -59,8 +56,8 @@ cfa_inq_dim_id(const int cfa_id, const char* name, int *cfa_dim_idp)
     /* get the AggregationContainer */
     AggregationContainer *agg_cont = NULL;
     int cfa_err = cfa_get(cfa_id, &agg_cont);
-    if (cfa_err)
-        return cfa_err;
+    CFA_CHECK(cfa_err);
+
 
     /* search through the dimensions, looking for the matching name */
     int cfa_ndim = 0;
@@ -79,8 +76,8 @@ cfa_inq_dim_id(const int cfa_id, const char* name, int *cfa_dim_idp)
         /* dimensions that belong to a closed AggregationContainer have their
         name set to NULL */
         cfa_err = get_array_node(&(agg_cont->cfa_dimp), i, (void**)(&cdim));
-        if (cfa_err)
-            return cfa_err;
+        CFA_CHECK(cfa_err);
+
         if (!(cdim->name))
             continue;
         if (strcmp(cdim->name, name) == 0)
@@ -101,16 +98,16 @@ cfa_inq_ndims(const int cfa_id, int *ndimp)
 {
     AggregationContainer *agg_cont = NULL;
     int cfa_err = cfa_get(cfa_id, &agg_cont);
-    if (cfa_err)
-        return cfa_err;
+    CFA_CHECK(cfa_err);
+
     if (!(agg_cont->cfa_dimp))
     {
         *ndimp = 0;
         return CFA_NOERR;
     }
     cfa_err = get_array_length(&(agg_cont->cfa_dimp), ndimp);
-    if (cfa_err)
-        return cfa_err;
+    CFA_CHECK(cfa_err);
+
     return CFA_NOERR;
 }
 
@@ -133,16 +130,15 @@ cfa_get_dim(const int cfa_id, const int cfa_dim_id,
 
     AggregationContainer* agg_cont = NULL;
     int cfa_err = cfa_get(cfa_id, &agg_cont);
-    if (cfa_err)
-        return cfa_err;
+    CFA_CHECK(cfa_err);
+
 
     /* 
     check that the path is not NULL.  On cfa_close, the path is set to NULL 
     */
     cfa_err = get_array_node(&(agg_cont->cfa_dimp), cfa_dim_id, 
                              (void**)(agg_dim));
-    if (cfa_err)
-        return cfa_err;
+    CFA_CHECK(cfa_err);
 
     if (!(*agg_dim)->name)
         return CFA_DIM_NOT_FOUND_ERR;
@@ -159,16 +155,14 @@ cfa_free_dims(const int cfa_id)
     /* get the AggregationContainer */
     AggregationContainer *agg_cont = NULL;
     int cfa_err = cfa_get(cfa_id, &agg_cont);
-    if (cfa_err)
-        return cfa_err;
+    CFA_CHECK(cfa_err);
 
     /* get the number of dimensions, this could be zero if none created yet */
     int n_dims = 0;
     if (agg_cont->cfa_dimp)
     {
         cfa_err = get_array_length(&(agg_cont->cfa_dimp), &n_dims);
-        if (cfa_err)
-            return cfa_err;
+        CFA_CHECK(cfa_err);
     }
     else
         return CFA_NOERR;
@@ -178,8 +172,7 @@ cfa_free_dims(const int cfa_id)
     for (int i=0; i<n_dims; i++)
     {
         cfa_err = get_array_node(&(agg_cont->cfa_dimp), i, (void**)(&agg_dim));
-        if (cfa_err)
-            return cfa_err;
+        CFA_CHECK(cfa_err);
         if (agg_dim->name)
         {
             cfa_free(agg_dim->name, strlen(agg_dim->name));
@@ -188,7 +181,7 @@ cfa_free_dims(const int cfa_id)
     }
     /* free the array memory */
     cfa_err = free_array(&(agg_cont->cfa_dimp));
-    if (cfa_err)
-        return cfa_err;
+    CFA_CHECK(cfa_err);
+
     return CFA_NOERR;
 }

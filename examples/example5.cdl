@@ -39,8 +39,8 @@ netcdf {
     double time ;
       time:standard_name = "time" ;
       time:units = "days since 2001-01-01" ;
-      temp:aggregated_dimensions = "time" ;
-      temp:aggregated_data = "location: /aggregation_time/location
+      time:aggregated_dimensions = "time" ;
+      time:aggregated_data = "location: /aggregation_time/location
                               file: /aggregation_time/file
                               format: agregation_format
                               address: /aggregation_time/address" ;

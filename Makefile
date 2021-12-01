@@ -37,12 +37,13 @@ $(CFA_LIB) : $(CFA_SRC)
 test_cfa_% : $(TST_DIR)/test_cfa_%.c $(CFA_LIB)
 	$(CC) $(CFLAGS) $(DEBUGFLAGS) $(LFLAGS) $< -o $(BLD_DIR)/$@
 
-tests : test_cfa_container test_cfa_dim test_cfa_example test_cfa_mem test_cfa_var
+tests : test_cfa_container test_cfa_dim test_cfa_example test_cfa_mem test_cfa_load test_cfa_var
 	build/test_cfa_container
 	build/test_cfa_dim
 	build/test_cfa_example
 	build/test_cfa_mem
 	build/test_cfa_var
+	build/test_cfa_load
 
 clean :
 	rm $(LIB_DIR)/*

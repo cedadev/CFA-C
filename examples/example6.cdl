@@ -33,8 +33,8 @@ netcdf {
     time:standard_name = "time" ;
     time:long_name = "time of measurement" ;
     time:units = "days since 1970-01-01" ;
-    temp:aggregated_dimensions = "obs" ;
-    temp:aggregated_data = "location: aggregation_location
+    time:aggregated_dimensions = "obs" ;
+    time:aggregated_data = "location: aggregation_location
                             file: aggregation_file
                             format: aggregation_format
                             address: aggregation_address_time" ;
@@ -42,8 +42,8 @@ netcdf {
     lon:standard_name = "longitude" ;
     lon:long_name = "station longitude" ;
     lon:units = "degrees_east" ;
-    temp:aggregated_dimensions = "obs" ;
-    temp:aggregated_data = "location: aggregation_location_latlon
+    lon:aggregated_dimensions = "obs" ;
+    lon:aggregated_data = "location: aggregation_location_latlon
                             file: aggregation_file
                             format: aggregation_format
                             address: aggregation_address_lon" ;
@@ -51,8 +51,8 @@ netcdf {
     lat:standard_name = "latitude";
     lat:long_name = "station latitude" ;
     lat:units = "degrees_north" ;
-    temp:aggregated_dimensions = "obs" ;
-    temp:aggregated_data = "location: aggregation_location_latlon
+    lat:aggregated_dimensions = "obs" ;
+    lat:aggregated_data = "location: aggregation_location_latlon
                             file: aggregation_file
                             format: aggregation_format
                             address: aggregation_address_lat" ;

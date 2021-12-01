@@ -182,12 +182,10 @@ get_array_length(DynamicArray **array, int* n_nodes)
 //     {
 //         void *ptr2 = NULL;
 //         cfa_err = get_array_node(array, i, &ptr2);
-//         if (cfa_err)
-//             return cfa_err;
+//         CFA_CHECK(cfa_err);
 //         void *ptr1 = NULL;
 //         cfa_err = get_array_node(array, i-1, &ptr1);
-//         if (cfa_err)
-//             return cfa_err;
+//         CFA_CHECK(cfa_err);
 //         ptr1 = ptr2;
 //     }
 //     (*array)->used--;

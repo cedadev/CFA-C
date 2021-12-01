@@ -5,6 +5,9 @@
 
 #include "cfa_mem.h"
 
+/* CFA metadata identifier string */
+#define CFA_CONVENTION ("CFA-0.6")
+
 /* ERROR constants */
 /* These start at -500 so we can pass standard netCDF errors back when parsing 
 the file */
@@ -16,49 +19,82 @@ the file */
 #define CFA_DIM_NOT_FOUND_ERR     (-520) /* Cannot find CFA Dimension */
 #define CFA_VAR_NOT_FOUND_ERR     (-530) /* Cannot find CFA Variable */
 #define CFA_UNKNOWN_FILE_FORMAT   (-540) /* Unsupported CFA file format */
+#define CFA_NOT_CFA_FILE          (-541) /* Not a CFA file - does not contain */
+                                         /* relevant metadata */
+#define CFA_AGG_DATA_ERR          (-542) /* Something went wrong parsing the */
+                                         /* "aggregated_data" attribute */
+#define CFA_AGG_DIM_ERR           (-542) /* Something went wrong parsing the */
+                                         /* "aggregated_dimensions" attribute */
+                                         
+
 
 /* CFA-structs */
 /* DataType struct */
 typedef struct {
-
+    char *type;
+    size_t size;
 } DataType;
 
 /* FragmentDimension */
 typedef struct {
-
+    char *name;
+    int length;
+    /* which AggregatedDimension is this a subdomain of? */
+    struct AggregatedDimension* cfa_dimp;
 } FragmentDimension;
+
+/* Fragment */
+typedef struct {
+    int  *location;
+    char *file;
+    char *format;
+    char *address;
+    char *units;
+    /* <FragmentDimension> */
+    DynamicArray *cfa_frag_dimsp;
+    DataType* cfa_dtype;
+} Fragment;
 
 /* AggregationInstructions */
 typedef struct {
-
+    char *location;
+    char *file;
+    char *format;
+    char *address;
 } AggregationInstructions;
 
 /* AggregatedData */
 typedef struct {
     char *units;
+    DynamicArray *cfa_fragmentsp;
 } AggregatedData;
 
 /* AggregatedDimension */
 typedef struct {
     char *name;
     int len;
+    FragmentDimension *cfa_frag_dimp;
 } AggregatedDimension;
 
 /* AggregationVariable */
 typedef struct {
     char *name;
+    /* dim ids <int> */
     int cfa_ndim;
     int *cfa_dim_idp;
+    DataType *cfa_dtype;
+    AggregatedData *cfa_datap;
+    AggregationInstructions *cfa_instructionsp;
 } AggregationVariable;
 
 /* AggregationContainer */
 typedef struct AggregationContainer AggregationContainer;
 struct AggregationContainer {
-    /* vars*/
+    /* var ids <AggregationVariable> */
     DynamicArray *cfa_varp;
-    /* dims */
+    /* dims <AggregatedDimension> */
     DynamicArray *cfa_dimp;
-    /* containers (for groups) */
+    /* containers <AggregationContainer> (for groups) */
     DynamicArray *cfa_containerp;
 
     /* file info */
@@ -123,4 +159,6 @@ extern int cfa_get_var(const int cfa_id, const int cfa_var_id,
                         AggregationVariable **agg_var);
 
 #define CFA_ERR(cfa_err) if(cfa_err) {printf("CFA error: %i\n", cfa_err); return cfa_err;}
+#define CFA_CHECK(cfa_err) if(cfa_err) {return cfa_err;}
+
 #endif
