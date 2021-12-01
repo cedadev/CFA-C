@@ -144,8 +144,19 @@ extern int cfa_get_dim(const int cfa_id, const int cfa_dim_id,
 
 /* create an AggregationVariable container, attach it to a cfa_id and one 
 or more cfa_dim_ids and assign it to a cfavarid */
-extern int cfa_def_var(const int cfa_id, const char *name, const int ndims, 
-                        int *cfa_dim_idsp, int *cfa_var_idp);
+extern int cfa_def_var(const int cfa_id, const char *name, int *cfa_var_idp);
+
+/* add the AggregatedDimension ids to to the variable */
+extern int cfa_var_def_dims(const int cfa_id, const int cfa_var_id,
+                            const int ndims, int *cfa_dim_idsp);
+
+/* add the AggregationInstructions from a string 
+   the string follows the key: value pair format
+   keys are: location:, address:, file:, format: (including the colon)
+   multiple key: value pairs can be separated by a space
+*/
+extern int cfa_var_def_agg_instr(const int cfa_id, const int cfa_var_id,
+                                 const char* agg_instr);
 
 /* get the identifier of an AggregationVariable by name */
 extern int cfa_inq_var_id(const int cfa_id, const char* name, 

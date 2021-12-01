@@ -8,8 +8,7 @@
 create a AggregationVariable container, attach it to a AggregationContainer and one or more AggregatedDimension(s) and assign it to a cfa_var_id
 */
 int
-cfa_def_var(int cfa_id, const char *name, int ndims, int *cfa_dim_idsp, 
-            int *cfa_var_idp)
+cfa_def_var(int cfa_id, const char *name, int *cfa_var_idp)
 {
     /* get the aggregation container */
     AggregationContainer* agg_cont = NULL;
@@ -37,27 +36,6 @@ cfa_def_var(int cfa_id, const char *name, int ndims, int *cfa_dim_idsp,
         return CFA_MEM_ERR;
     strcpy(var_node->name, name);
 
-    /* check that the dimension ids have been added to the container already.
-       this basically means that the dim_id(s) passed in via the cfa_dim_idsp 
-       pointer are greater than 0 and less than the number of dimensions */
-    
-    int n_cfa_dims = -1;
-    cfa_err = cfa_inq_ndims(cfa_id, &n_cfa_dims);
-    CFA_CHECK(cfa_err);
-
-    for (int i=0; i<ndims; i++)
-    {
-        if (cfa_dim_idsp[i] < 0 || cfa_dim_idsp[i] >= n_cfa_dims)
-            return CFA_DIM_NOT_FOUND_ERR;
-    }
-
-    /* assign the number of dimensions and copy the dimension array */
-    var_node->cfa_ndim = ndims;
-    var_node->cfa_dim_idp = (int*) cfa_malloc(sizeof(int) * ndims);
-    if (!(var_node->cfa_dim_idp))
-        return CFA_MEM_ERR;
-    memcpy(var_node->cfa_dim_idp, cfa_dim_idsp, sizeof(int) * ndims);
-
     /* allocate the AggregationVariable identifier */
     int cfa_nvar = 0;
     cfa_err = get_array_length(&(agg_cont->cfa_varp), &cfa_nvar);
@@ -73,6 +51,123 @@ cfa_def_var(int cfa_id, const char *name, int ndims, int *cfa_dim_idsp,
     /* write back the cfa_var_id */
     *cfa_var_idp = cfa_nvar - 1;
 
+    return CFA_NOERR;
+}
+
+/*
+add the AggregatedDimensions to the AggregationVariable.
+the dimensions have to be previously defined in the AggregationContainer
+*/
+int cfa_var_def_dims(const int cfa_id, const int cfa_var_id,
+                     const int ndims, int *cfa_dim_idsp)
+{
+    /* get the AggregationVariable from the ids */
+    AggregationVariable *agg_var = NULL;
+    int cfa_err = cfa_get_var(cfa_id, cfa_var_id, &agg_var);
+    CFA_CHECK(cfa_err);
+
+    /* check that the dimension ids have been added to the container already.
+       this basically means that the dim_id(s) passed in via the cfa_dim_idsp 
+       pointer are greater than 0 and less than the number of dimensions */
+    int n_cfa_dims = -1;
+    cfa_err = cfa_inq_ndims(cfa_id, &n_cfa_dims);
+    CFA_CHECK(cfa_err);
+
+    for (int i=0; i<ndims; i++)
+    {
+        if (cfa_dim_idsp[i] < 0 || cfa_dim_idsp[i] >= n_cfa_dims)
+            return CFA_DIM_NOT_FOUND_ERR;
+    }
+
+    /* assign the number of dimensions and copy the dimension array */
+    agg_var->cfa_ndim = ndims;
+    agg_var->cfa_dim_idp = (int*) cfa_malloc(sizeof(int) * ndims);
+    if (!(agg_var->cfa_dim_idp))
+        return CFA_MEM_ERR;
+    memcpy(agg_var->cfa_dim_idp, cfa_dim_idsp, sizeof(int) * ndims);
+
+    return CFA_NOERR;
+}
+
+/* add the AggregationInstructions from a string 
+   the string follows the key: value pair format
+   keys are: location:, address:, file:, format: (including the colon)
+   multiple key: value pairs can be separated by a space
+*/
+int 
+cfa_var_def_agg_instr(const int cfa_id, const int cfa_var_id,
+                      const char* agg_instr)
+{
+    /* get the CFA AggregationVariable */
+    AggregationVariable *agg_var;
+    int err = cfa_get_var(cfa_id, cfa_var_id, &agg_var);
+    CFA_CHECK(err);
+    /* parse the "aggregated_data" attribute, getting each key:value pair */
+    /* copy the att_str to tmp_str each time as strtok is destructive! */
+    int agg_len = strlen(agg_instr);
+    char *tmp_str = cfa_malloc(agg_len * sizeof(char));
+    /* keep a count of how many AggregationInstructions we have added so that
+    we can throw an error if it is zero at the end of the function */
+    int n_agg_instr = 0;
+    /* location */
+    const char* LOCATION = "location:";
+    if (strstr(agg_instr, LOCATION))
+    {
+        strcpy(tmp_str, agg_instr);
+        char *keyp = strstr(tmp_str, LOCATION);               /* find key */
+        char *locvp = strtok(keyp + strlen(LOCATION), " ");   /* find value */
+        agg_var->cfa_instructionsp->location = cfa_malloc(
+            strlen(locvp) * sizeof(char)
+        );
+        strcpy(agg_var->cfa_instructionsp->location, locvp);
+        n_agg_instr++;
+    }
+    /* file */
+    const char *FILE = "file:";
+    if (strstr(agg_instr, FILE))
+    {
+        strcpy(tmp_str, agg_instr);
+        char *keyp = strstr(tmp_str, FILE);                   /* find key */
+        char *filevp = strtok(keyp + strlen(FILE), " ");      /* find value */
+        agg_var->cfa_instructionsp->file = cfa_malloc(
+            strlen(filevp) * sizeof(char)
+        );
+        strcpy(agg_var->cfa_instructionsp->file, filevp);
+        n_agg_instr++;
+    }
+    /* format */
+    const char *FORMAT = "format:";
+    if (strstr(agg_instr, FORMAT))
+    {
+        strcpy(tmp_str, agg_instr);
+        char *keyp = strstr(tmp_str, FORMAT);                 /* find key */
+        char *formatvp = strtok(keyp + strlen(FORMAT), " ");  /* find value */
+        agg_var->cfa_instructionsp->format = cfa_malloc(
+            strlen(formatvp) * sizeof(char)
+        );
+        strcpy(agg_var->cfa_instructionsp->format, formatvp);
+        n_agg_instr++;
+    }
+
+    /* address */
+    const char *ADDRESS = "address:";
+    if (strstr(agg_instr, ADDRESS))
+    {
+        strcpy(tmp_str, agg_instr);
+        char *keyp = strstr(tmp_str, ADDRESS);                 /* find key */
+        char *addrvp = strtok(keyp + strlen(ADDRESS), " ");    /* find value */
+        agg_var->cfa_instructionsp->address = cfa_malloc(
+            strlen(addrvp) * sizeof(char)
+        );
+        strcpy(agg_var->cfa_instructionsp->address, addrvp);
+        n_agg_instr++;
+    }
+
+    /* free the temp string */
+    cfa_free(tmp_str, agg_len * sizeof(char));
+    /* check that at least one AggregationInstruction has been added */
+    if (n_agg_instr == 0)
+        return CFA_AGG_DATA_ERR;
     return CFA_NOERR;
 }
 

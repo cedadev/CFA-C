@@ -61,18 +61,6 @@ is_cfa_data_variable(const int ncid, const int ncvarid, int *iscfavarp)
 }
 
 /*
-get a value from an attribute string that is in key: value format.
-the return is a pointer to the value string.
-*/
-int
-get_value_from_key(const char* att_str, const char* key, char** value)
-{
-    char *keyp = strstr(att_str, key);     /* find key: */
-    *value = strtok(keyp + strlen(key), " ");
-    return CFA_NOERR;
-}
-
-/*
 get the aggregation instructions from an attribute string
 */
 int
@@ -87,42 +75,9 @@ parse_aggregation_instructions(const int ncid, const int varid,
     char *att_str = cfa_malloc(att_len*sizeof(char));
     err = nc_get_att_text(ncid, varid, AGGREGATED_DATA, att_str);
     CFA_CHECK(err);
-
-    /* get the CFA AggregationVariable */
-    AggregationVariable *agg_var;
-    err = cfa_get_var(cfa_id, cfa_var_id, &agg_var);
+    err = cfa_var_def_agg_instr(cfa_id, cfa_var_id, att_str);
     CFA_CHECK(err);
 
-    char *tmp_str = cfa_malloc(att_len*sizeof(char));
-    /* parse the "aggregated_data" attribute, getting each key:value pair */
-    /* copy the att_str to tmp_str each time as strtok is destructive! */
-    /* location */
-    strcpy(tmp_str, att_str);
-    char *locvp = NULL;
-    err = get_value_from_key(tmp_str, "location:", &locvp);
-    CFA_CHECK(err);
-    agg_var->cfa_instructionsp->location = cfa_malloc(strlen(locvp) * sizeof(char));
-    strcpy(agg_var->cfa_instructionsp->location, locvp);
-
-    /* file */
-    strcpy(tmp_str, att_str);
-    char *filevp = NULL;
-    err = get_value_from_key(tmp_str, "file:", &filevp);
-    CFA_CHECK(err);
-
-    /* format */
-    strcpy(tmp_str, att_str);
-    char *formatvp = NULL;
-    err = get_value_from_key(tmp_str, "format:", &formatvp);
-    CFA_CHECK(err);
-
-    /* address */
-    strcpy(tmp_str, att_str);
-    char *addressvp = NULL;
-    err = get_value_from_key(tmp_str, "address:", &addressvp);
-    CFA_CHECK(err);
-
-    cfa_free(tmp_str, att_len*sizeof(char));
     cfa_free(att_str, att_len*sizeof(char));
     return CFA_NOERR;
 }
@@ -139,7 +94,7 @@ parse_netcdf_cfa_variable(const int ncid, const int ncvarid, const int cfa_id)
     CFA_CHECK(err);
     /* define the variable */
     int cfa_var_id = -1;
-    err = cfa_def_var(cfa_id, varname, 0, NULL, &cfa_var_id);
+    err = cfa_def_var(cfa_id, varname, &cfa_var_id);
     CFA_CHECK(err);
     /* get the aggregation instructions */
     err = parse_aggregation_instructions(ncid, ncvarid, cfa_id, cfa_var_id);
@@ -167,7 +122,10 @@ parse_netcdf_cfa_variables(const int ncid, const int cfa_id)
         err = is_cfa_data_variable(ncid, v, &iscfavar);
         CFA_CHECK(err);
         if (iscfavar)
-            parse_netcdf_cfa_variable(ncid, v, cfa_id);
+        {
+            err = parse_netcdf_cfa_variable(ncid, v, cfa_id);
+            CFA_CHECK(err);
+        }
     }
     return CFA_NOERR;
 }
