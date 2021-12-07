@@ -31,10 +31,7 @@ cfa_def_var(int cfa_id, const char *name, int *cfa_var_idp)
     CFA_CHECK(cfa_err);
 
     /* assign the name */
-    var_node->name = (char*) cfa_malloc(sizeof(char) * strlen(name));
-    if (!(var_node->name))
-        return CFA_MEM_ERR;
-    strcpy(var_node->name, name);
+    var_node->name = strdup(name);
 
     /* allocate the AggregationVariable identifier */
     int cfa_nvar = 0;
@@ -75,8 +72,13 @@ int cfa_var_def_dims(const int cfa_id, const int cfa_var_id,
 
     for (int i=0; i<ndims; i++)
     {
+        /* check the dimid is in range */
         if (cfa_dim_idsp[i] < 0 || cfa_dim_idsp[i] >= n_cfa_dims)
             return CFA_DIM_NOT_FOUND_ERR;
+        /* check the dimension has been added to the AggregationContainer */
+        AggregatedDimension* agg_dim;
+        cfa_err = cfa_get_dim(cfa_id, cfa_dim_idsp[i], &agg_dim);
+        CFA_CHECK(cfa_err);
     }
 
     /* assign the number of dimensions and copy the dimension array */
@@ -96,78 +98,27 @@ int cfa_var_def_dims(const int cfa_id, const int cfa_var_id,
 */
 int 
 cfa_var_def_agg_instr(const int cfa_id, const int cfa_var_id,
-                      const char* agg_instr)
+                      const char* agg_instr_key, const char* agg_instr_val)
 {
     /* get the CFA AggregationVariable */
     AggregationVariable *agg_var;
     int err = cfa_get_var(cfa_id, cfa_var_id, &agg_var);
     CFA_CHECK(err);
-    /* parse the "aggregated_data" attribute, getting each key:value pair */
-    /* copy the att_str to tmp_str each time as strtok is destructive! */
-    int agg_len = strlen(agg_instr);
-    char *tmp_str = cfa_malloc(agg_len * sizeof(char));
-    /* keep a count of how many AggregationInstructions we have added so that
-    we can throw an error if it is zero at the end of the function */
-    int n_agg_instr = 0;
-    /* location */
     const char* LOCATION = "location:";
-    if (strstr(agg_instr, LOCATION))
-    {
-        strcpy(tmp_str, agg_instr);
-        char *keyp = strstr(tmp_str, LOCATION);               /* find key */
-        char *locvp = strtok(keyp + strlen(LOCATION), " ");   /* find value */
-        agg_var->cfa_instructionsp->location = cfa_malloc(
-            strlen(locvp) * sizeof(char)
-        );
-        strcpy(agg_var->cfa_instructionsp->location, locvp);
-        n_agg_instr++;
-    }
+    if (strstr(agg_instr_key, LOCATION))
+        agg_var->cfa_instructionsp->location = strdup(agg_instr_val);
     /* file */
     const char *FILE = "file:";
-    if (strstr(agg_instr, FILE))
-    {
-        strcpy(tmp_str, agg_instr);
-        char *keyp = strstr(tmp_str, FILE);                   /* find key */
-        char *filevp = strtok(keyp + strlen(FILE), " ");      /* find value */
-        agg_var->cfa_instructionsp->file = cfa_malloc(
-            strlen(filevp) * sizeof(char)
-        );
-        strcpy(agg_var->cfa_instructionsp->file, filevp);
-        n_agg_instr++;
-    }
+    if (strstr(agg_instr_key, FILE))
+        agg_var->cfa_instructionsp->file = strdup(agg_instr_val);
     /* format */
     const char *FORMAT = "format:";
-    if (strstr(agg_instr, FORMAT))
-    {
-        strcpy(tmp_str, agg_instr);
-        char *keyp = strstr(tmp_str, FORMAT);                 /* find key */
-        char *formatvp = strtok(keyp + strlen(FORMAT), " ");  /* find value */
-        agg_var->cfa_instructionsp->format = cfa_malloc(
-            strlen(formatvp) * sizeof(char)
-        );
-        strcpy(agg_var->cfa_instructionsp->format, formatvp);
-        n_agg_instr++;
-    }
-
+    if (strstr(agg_instr_key, FORMAT))
+        agg_var->cfa_instructionsp->format = strdup(agg_instr_val);
     /* address */
     const char *ADDRESS = "address:";
-    if (strstr(agg_instr, ADDRESS))
-    {
-        strcpy(tmp_str, agg_instr);
-        char *keyp = strstr(tmp_str, ADDRESS);                 /* find key */
-        char *addrvp = strtok(keyp + strlen(ADDRESS), " ");    /* find value */
-        agg_var->cfa_instructionsp->address = cfa_malloc(
-            strlen(addrvp) * sizeof(char)
-        );
-        strcpy(agg_var->cfa_instructionsp->address, addrvp);
-        n_agg_instr++;
-    }
-
-    /* free the temp string */
-    cfa_free(tmp_str, agg_len * sizeof(char));
-    /* check that at least one AggregationInstruction has been added */
-    if (n_agg_instr == 0)
-        return CFA_AGG_DATA_ERR;
+    if (strstr(agg_instr_key, ADDRESS))
+        agg_var->cfa_instructionsp->address = strdup(agg_instr_val);
     return CFA_NOERR;
 }
 
@@ -297,7 +248,7 @@ cfa_free_vars(const int cfa_id)
         CFA_CHECK(cfa_err);
         if (agg_var->name)
         {
-            cfa_free(agg_var->name, strlen(agg_var->name));
+            cfa_free(agg_var->name, strlen(agg_var->name)+1);
             agg_var->name = NULL;
         }
         if (agg_var->cfa_dim_idp && agg_var->cfa_ndim > 0)
@@ -310,20 +261,16 @@ cfa_free_vars(const int cfa_id)
             /* free the cfa instructions and their strings */
             if (agg_var->cfa_instructionsp->location)
                 cfa_free(agg_var->cfa_instructionsp->location,
-                         strlen(agg_var->cfa_instructionsp->location) * 
-                         sizeof(char));
+                         strlen(agg_var->cfa_instructionsp->location)+1);
             if (agg_var->cfa_instructionsp->address)
                 cfa_free(agg_var->cfa_instructionsp->address,
-                         strlen(agg_var->cfa_instructionsp->address) * 
-                         sizeof(char));
+                         strlen(agg_var->cfa_instructionsp->address)+1);
             if (agg_var->cfa_instructionsp->file)
                 cfa_free(agg_var->cfa_instructionsp->file,
-                         strlen(agg_var->cfa_instructionsp->file) * 
-                         sizeof(char));
+                         strlen(agg_var->cfa_instructionsp->file)+1);
             if (agg_var->cfa_instructionsp->format)
                 cfa_free(agg_var->cfa_instructionsp->format,
-                         strlen(agg_var->cfa_instructionsp->format) * 
-                         sizeof(char));
+                         strlen(agg_var->cfa_instructionsp->format)+1);
             cfa_free(agg_var->cfa_instructionsp, 
                      sizeof(AggregationInstructions));
             agg_var->cfa_instructionsp = NULL;

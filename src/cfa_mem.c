@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "cfa.h"
 #include "cfa_mem.h"
@@ -23,9 +24,11 @@ default dynamic array size
 const int DARRAY_SIZE=16;
 
 /*
-static count of used memory
+static count of used memory, number of calls to cfa_malloc and cfa_free
 */
 static size_t cfa_used_mem=0;
+static int cfa_n_malloc=0;
+static int cfa_n_free=0;
 
 /*
 functions to allocate memory and add to the cfa_used_mem
@@ -36,10 +39,15 @@ cfa_malloc(const size_t size)
 {
     /* allocate memory and keep a record */
     void* ptr = malloc(size);
-
+    /* initialise memory to zero as a precaution, could move this inside 
+       debug */
+    memset(ptr, 0, size);
 #ifdef _DEBUG
     if (ptr)
+    {
         cfa_used_mem += size;
+        cfa_n_malloc ++;
+    }
 #endif
     return ptr;
 }
@@ -64,6 +72,7 @@ cfa_free(void *ptr, const size_t size)
 #ifdef _DEBUG
     ptr = NULL;
     cfa_used_mem -= size;
+    cfa_n_free ++;
 #endif
 }
 
@@ -76,6 +85,8 @@ cfa_memcheck(void)
     if(cfa_used_mem != 0)
     {
         printf("Non freed bytes: %i\n", (int)(cfa_used_mem));
+        printf("Number of cfa_mallocs: %i\n", cfa_n_malloc);
+        printf("Number of cfa_frees: %i\n", cfa_n_free);
         return CFA_MEM_LEAK;
     }
     return CFA_NOERR;
@@ -227,4 +238,35 @@ allocate_array(void** ptr, int csize, int typesize)
         *ptr = tmp_mem;
     }
     return CFA_NOERR;
+}
+
+/*
+strip white space characters from a string
+*/
+int 
+strstrip(char *s)
+{
+    int len = strlen(s);
+    int i = 0;
+    int j = 0;
+    while ((i+j)<len)
+    {
+     	if(s[i] == ' ' || s[i] == '\t' || s[i] == '\n')
+		    j++;
+        s[i] = s[i+j];
+        i++;
+    }
+    return CFA_NOERR;
+}
+
+/*
+duplicate a string
+*/
+char*
+strdup(const char *s)
+{
+    /* allocate memory, use strcpy */
+    char* r = cfa_malloc(strlen(s)+1);
+    strcpy(r, s);
+    return r;
 }

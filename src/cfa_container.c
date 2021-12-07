@@ -28,12 +28,8 @@ cfa_create(const char *path, int *cfa_idp)
     cfa_err = create_array_node(&cfa_conts, (void**)(&cfa_node));
     CFA_CHECK(cfa_err);
 
-
     /* add the path */
-    cfa_node->path = (char*) cfa_malloc(sizeof(char) * strlen(path));
-    if (!(cfa_node->path)) 
-        return CFA_MEM_ERR; 
-    strcpy(cfa_node->path, path);
+    cfa_node->path = strdup(path);
 
     /* set var pointer to NULL */
     cfa_node->cfa_varp = NULL;
@@ -215,8 +211,8 @@ int cfa_close(const int cfa_id)
         /* free memory of dynamically allocated components */
         if (cfa_node->path)
         {
-            /* free the path */
-            cfa_free(cfa_node->path, strlen(cfa_node->path));
+            /* free the path string */
+            cfa_free(cfa_node->path, strlen(cfa_node->path)+1);
             cfa_node->path = NULL;
         }
     }

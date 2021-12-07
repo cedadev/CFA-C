@@ -32,10 +32,7 @@ cfa_def_dim(const int cfa_id, const char *name, const int len, int *cfa_dim_idp)
 
     /* copy the length and name to the dimension */
     dim_node->len = len;
-    dim_node->name = (char*) cfa_malloc(sizeof(char) * strlen(name));
-    if (!(dim_node->name))
-        return CFA_MEM_ERR;
-    strcpy(dim_node->name, name);
+    dim_node->name = strdup(name);
 
     /* get the length of the AggregatedDimension array - the id is len-1 */
     int cfa_ndim = 0;
@@ -141,7 +138,10 @@ cfa_get_dim(const int cfa_id, const int cfa_dim_id,
     CFA_CHECK(cfa_err);
 
     if (!(*agg_dim)->name)
+    {
+        agg_dim = NULL;
         return CFA_DIM_NOT_FOUND_ERR;
+    }
 
     return CFA_NOERR;
 }
@@ -175,7 +175,7 @@ cfa_free_dims(const int cfa_id)
         CFA_CHECK(cfa_err);
         if (agg_dim->name)
         {
-            cfa_free(agg_dim->name, strlen(agg_dim->name));
+            cfa_free(agg_dim->name, strlen(agg_dim->name)+1);
             agg_dim->name = NULL;
         }        
     }

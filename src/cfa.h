@@ -6,7 +6,8 @@
 #include "cfa_mem.h"
 
 /* CFA metadata identifier string */
-#define CFA_CONVENTION ("CFA-0.6")
+#define CFA_CONVENTION ("CFA-")
+#define CFA_VERSION    ("0.6")
 
 /* ERROR constants */
 /* These start at -500 so we can pass standard netCDF errors back when parsing 
@@ -21,13 +22,12 @@ the file */
 #define CFA_UNKNOWN_FILE_FORMAT   (-540) /* Unsupported CFA file format */
 #define CFA_NOT_CFA_FILE          (-541) /* Not a CFA file - does not contain */
                                          /* relevant metadata */
-#define CFA_AGG_DATA_ERR          (-542) /* Something went wrong parsing the */
+#define CFA_UNSUPPORTED_VERSION   (-542) /* Unsupported version of CFA-netCDF */
+#define CFA_AGG_DATA_ERR          (-543) /* Something went wrong parsing the */
                                          /* "aggregated_data" attribute */
-#define CFA_AGG_DIM_ERR           (-542) /* Something went wrong parsing the */
+#define CFA_AGG_DIM_ERR           (-544) /* Something went wrong parsing the */
                                          /* "aggregated_dimensions" attribute */
                                          
-
-
 /* CFA-structs */
 /* DataType struct */
 typedef struct {
@@ -140,7 +140,7 @@ extern int cfa_inq_ndims(const int cfa_id, int *ndimp);
 
 /* get the AggregatedDimension from a cfa_dim_id */
 extern int cfa_get_dim(const int cfa_id, const int cfa_dim_id, 
-                        AggregatedDimension **agg_dim);
+                       AggregatedDimension **agg_dim);
 
 /* create an AggregationVariable container, attach it to a cfa_id and one 
 or more cfa_dim_ids and assign it to a cfavarid */
@@ -156,7 +156,8 @@ extern int cfa_var_def_dims(const int cfa_id, const int cfa_var_id,
    multiple key: value pairs can be separated by a space
 */
 extern int cfa_var_def_agg_instr(const int cfa_id, const int cfa_var_id,
-                                 const char* agg_instr);
+                                 const char* agg_instr_key, 
+                                 const char* agg_instr_val);
 
 /* get the identifier of an AggregationVariable by name */
 extern int cfa_inq_var_id(const int cfa_id, const char* name, 
@@ -167,7 +168,7 @@ extern int cfa_inq_nvars(const int cfa_id, int *nvarp);
 
 /* get the AggregationVariable from a cfa_var_id */
 extern int cfa_get_var(const int cfa_id, const int cfa_var_id,
-                        AggregationVariable **agg_var);
+                       AggregationVariable **agg_var);
 
 #define CFA_ERR(cfa_err) if(cfa_err) {printf("CFA error: %i\n", cfa_err); return cfa_err;}
 #define CFA_CHECK(cfa_err) if(cfa_err) {return cfa_err;}

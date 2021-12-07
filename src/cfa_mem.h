@@ -15,7 +15,10 @@ int create_array_node(DynamicArray **array, void **ptr);
 int get_array_node(DynamicArray **array, int node, void **ptr);
 int get_array_length(DynamicArray **array, int* n_nodes);
 int free_array(DynamicArray **array);
-
 int allocate_array(void **ptr, int csize, int typesize);
+
+/* string manipulation */
+int strstrip(char *str);    /* strip a string of white space */
+char*strdup(const char *s); /* duplicate a string */
 
 #endif

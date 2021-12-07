@@ -22,7 +22,7 @@ is_netcdf_cfa_file(const int ncid)
     CFA_CHECK(err);
 
     /* allocate the memory and read in the Convention string */
-    char* convention = cfa_malloc(att_len*sizeof(char));
+    char *convention = cfa_malloc(att_len+1);
     err = nc_get_att(ncid, NC_GLOBAL, "Conventions", convention);
     CFA_CHECK(err);
 
@@ -30,7 +30,11 @@ is_netcdf_cfa_file(const int ncid)
     if (!strstr(convention, CFA_CONVENTION))
         return CFA_NOT_CFA_FILE;
 
-    cfa_free(convention, att_len*sizeof(char));
+    /* check that CFA_VERSION is a substring in convention */
+    if (!strstr(convention, CFA_VERSION))
+        return CFA_UNSUPPORTED_VERSION;
+
+    cfa_free(convention, att_len+1);
     return CFA_NOERR;
 }
 
@@ -64,23 +68,101 @@ is_cfa_data_variable(const int ncid, const int ncvarid, int *iscfavarp)
 get the aggregation instructions from an attribute string
 */
 int
-parse_aggregation_instructions(const int ncid, const int varid,
+parse_aggregation_instructions(const int ncid, const int ncvarid,
                                const int cfa_id, const int cfa_var_id)
 {
     /* read the "aggregated_data" attribute - these are the aggregation 
     instructions */
     size_t att_len = 0;
-    int err = nc_inq_attlen(ncid, varid, AGGREGATED_DATA, &att_len);
+    int err = nc_inq_attlen(ncid, ncvarid, AGGREGATED_DATA, &att_len);
     CFA_CHECK(err);
-    char *att_str = cfa_malloc(att_len*sizeof(char));
-    err = nc_get_att_text(ncid, varid, AGGREGATED_DATA, att_str);
-    CFA_CHECK(err);
-    err = cfa_var_def_agg_instr(cfa_id, cfa_var_id, att_str);
+    char *att_str = cfa_malloc(att_len+1);
+    err = nc_get_att_text(ncid, ncvarid, AGGREGATED_DATA, att_str);
     CFA_CHECK(err);
 
-    cfa_free(att_str, att_len*sizeof(char));
+    /* parse the "aggregated_data" attribute, getting each key:value pair */
+    char *strp = strtok(att_str, " ");
+    char key[256];
+    char value[256];
+    int n_agg_instr = 0;
+    /* extract key: value pairs */
+    while(strp != NULL)
+    {
+        strcpy(key, strp);
+        strstrip(key);
+        strp = strtok(NULL, " ");
+        if (strp != NULL)
+        {
+            strcpy(value, strp);
+            strstrip(value);
+            strp = strtok(NULL, " ");
+            /* define the aggregation instructions in the cfa var */
+            err = cfa_var_def_agg_instr(cfa_id, cfa_var_id, key, value);
+            CFA_CHECK(err);
+            if (!err)
+               n_agg_instr++;
+        }
+    }
+    AggregationVariable *cfa_var = NULL;
+    err = cfa_get_var(cfa_id, cfa_var_id, &cfa_var);
+    CFA_CHECK(err);
+    /* check that four AggregationInstructions have been added */
+    if (n_agg_instr != 4)
+        return CFA_AGG_DATA_ERR;
+
+    cfa_free(att_str, att_len+1);
     return CFA_NOERR;
 }
+
+int
+parse_aggregated_dimensions(const int ncid, const int ncvarid, 
+                            const int cfa_id, const int cfa_var_id)
+{
+    /* read the "aggregated dimensions" attribute */
+    size_t att_len = 0;
+    int err = nc_inq_attlen(ncid, ncvarid, AGGREGATED_DIMENSIONS, &att_len);
+    CFA_CHECK(err);
+    char *att_str = cfa_malloc(att_len+1);
+    err = nc_get_att_text(ncid, ncvarid, AGGREGATED_DIMENSIONS, att_str);
+    CFA_CHECK(err);
+    char dimname[256];
+    int ndims = 0;
+    int dimids[256];
+    /* split on space */
+    char *strp = strtok(att_str, " ");
+    while(strp != NULL)
+    {
+        strcpy(dimname, strp);
+        /* see if the CFA AggregatedDimension has already been added */
+        int cfa_dim_id = 0;
+        err = cfa_inq_dim_id(cfa_id, dimname, &cfa_dim_id);
+        if (err == CFA_DIM_NOT_FOUND_ERR)   /* this is the desirable outcome */
+        {
+            /* get the length of the dimension from the netCDF file */
+            int ncdimid = 0;
+            size_t ncdimlen = 0;
+            err = nc_inq_dimid(ncid, dimname, &ncdimid);
+            CFA_CHECK(err);
+            err = nc_inq_dimlen(ncid, ncdimid, &ncdimlen);
+            CFA_CHECK(err);
+            /* create the AggregatedDimension */
+            err = cfa_def_dim(cfa_id, dimname, ncdimlen, &cfa_dim_id);
+            CFA_CHECK(err);
+        }
+        else if (err != CFA_NOERR)
+            CFA_CHECK(err);
+        dimids[ndims] = cfa_dim_id;
+        ndims++;
+        strp = strtok(NULL, " ");
+    }
+    /* we now have an array of AggregatedDimensions in dimids, add these to 
+    the AggregationVariable */
+    err = cfa_var_def_dims(cfa_id, cfa_var_id, ndims, dimids);
+    CFA_CHECK(err);
+    cfa_free(att_str, att_len+1);
+    return CFA_NOERR;
+}
+
 
 /*
 parse an individual variable
@@ -98,6 +180,9 @@ parse_netcdf_cfa_variable(const int ncid, const int ncvarid, const int cfa_id)
     CFA_CHECK(err);
     /* get the aggregation instructions */
     err = parse_aggregation_instructions(ncid, ncvarid, cfa_id, cfa_var_id);
+    CFA_CHECK(err);
+    /* get the aggregated dimensions */
+    err = parse_aggregated_dimensions(ncid, ncvarid, cfa_id, cfa_var_id);
     CFA_CHECK(err);
 
     return CFA_NOERR;
