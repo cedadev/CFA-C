@@ -1,0 +1,54 @@
+{
+    "command": "bash",
+    "options": {
+        "cwd": "${workspaceRoot}"
+    },
+	"args": [
+        "-c"
+    ],
+    "type": "shell",
+    "group": "build",
+    "problemMatcher": "$gcc",
+    "presentation": {
+        "reveal": "silent"
+    },
+    "tasks": [
+        {
+            "label": "build_all",
+            "args": ["all"],
+            "command": "make",
+
+        },
+        {
+            "label": "build_test_cfa",
+            "command": "make",
+            "args": ["test_cfa"],
+        },
+        {
+            "label": "build_test_cfa_dim",
+            "command": "make",
+            "args": ["test_cfa_dim"],
+        },
+        {
+            "label": "build_test_cfa_example",
+            "command": "make",
+            "args": ["test_cfa_example"],
+        },
+        {
+            "label": "build_test_cfa_mem",
+            "command": "make",
+            "args": ["test_cfa_mem"],
+        },
+        {
+            "label": "build_test_cfa_var",
+            "command": "make",
+            "args": ["test_cfa_var"],
+        },
+        {
+            "label": "build_test_cfa_load",
+            "command": "make",
+            "args": ["test_cfa_load"],
+        },
+    ],
+    "version": "2.0.0"
+}

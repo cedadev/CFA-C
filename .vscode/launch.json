@@ -1,0 +1,85 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "test_cfa",
+            "program": "${workspaceRoot}/build/test_cfa",
+            "type": "cppdbg",
+            "request": "launch",
+            "cwd": "${workspaceRoot}",
+            "targetArchitecture": "x64",
+            "osx": {
+                "MIMode": "lldb"
+            },  
+            "preLaunchTask": "build_test_cfa"
+        },
+
+        {
+            "name": "test_cfa_dim",
+            "program": "${workspaceRoot}/build/test_cfa_dim",
+            "type": "cppdbg",
+            "request": "launch",
+            "cwd": "${workspaceRoot}",
+            "targetArchitecture": "x64",
+            "osx": {
+                "MIMode": "lldb"
+            },  
+            "preLaunchTask": "build_test_cfa_dim"
+        },
+
+        {
+            "name": "test_cfa_example",
+            "program": "${workspaceRoot}/build/test_cfa_example",
+            "type": "cppdbg",
+            "request": "launch",
+            "cwd": "${workspaceRoot}",
+            "targetArchitecture": "x64",
+            "osx": {
+                "MIMode": "lldb"
+            },  
+            "preLaunchTask": "build_test_cfa_example"
+        },
+
+        {
+            "name": "test_cfa_mem",
+            "program": "${workspaceRoot}/build/test_cfa_mem",
+            "type": "cppdbg",
+            "request": "launch",
+            "cwd": "${workspaceRoot}",
+            "targetArchitecture": "x64",
+            "osx": {
+                "MIMode": "lldb"
+            },  
+            "preLaunchTask": "build_test_cfa_mem"
+        },
+
+        {
+            "name": "test_cfa_var",
+            "program": "${workspaceRoot}/build/test_cfa_var",
+            "type": "cppdbg",
+            "request": "launch",
+            "cwd": "${workspaceRoot}",
+            "targetArchitecture": "x64",
+            "osx": {
+                "MIMode": "lldb"
+            },  
+            "preLaunchTask": "build_test_cfa_var"
+        },
+
+        {
+            "name": "test_cfa_load",
+            "program": "${workspaceRoot}/build/test_cfa_load",
+            "type": "cppdbg",
+            "request": "launch",
+            "cwd": "${workspaceRoot}",
+            "targetArchitecture": "x64",
+            "osx": {
+                "MIMode": "lldb"
+            },  
+            "preLaunchTask": "build_test_cfa_load"
+        },
+    ]
+}
