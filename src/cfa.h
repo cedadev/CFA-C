@@ -88,14 +88,21 @@ typedef struct {
 } AggregationVariable;
 
 /* AggregationContainer */
+#define MAX_VARS 256
+#define MAX_DIMS 256
+#define MAX_CONTS 256
+
 typedef struct AggregationContainer AggregationContainer;
 struct AggregationContainer {
     /* var ids <AggregationVariable> */
-    DynamicArray *cfa_varp;
+    int cfa_varids[MAX_VARS];
+    int n_vars;
     /* dims <AggregatedDimension> */
-    DynamicArray *cfa_dimp;
+    int cfa_dimids[MAX_DIMS];
+    int n_dims;
     /* containers <AggregationContainer> (for groups) */
-    DynamicArray *cfa_containerp;
+    int cfa_contids[MAX_CONTS];
+    int n_conts;
 
     /* file info */
     char* path;
@@ -138,6 +145,9 @@ extern int cfa_inq_dim_id(const int cfa_id, const char* name,
 /* return the number of AggregatedDimensions that have been defined */
 extern int cfa_inq_ndims(const int cfa_id, int *ndimp);
 
+/* get the ids for the AggregatedDimensions in the AggregationContainer */
+extern int cfa_inq_dim_ids(const int cfa_id, int **dimids);
+
 /* get the AggregatedDimension from a cfa_dim_id */
 extern int cfa_get_dim(const int cfa_id, const int cfa_dim_id, 
                        AggregatedDimension **agg_dim);
@@ -165,6 +175,9 @@ extern int cfa_inq_var_id(const int cfa_id, const char* name,
 
 /* get the number of AggregationVariables defined */
 extern int cfa_inq_nvars(const int cfa_id, int *nvarp);
+
+/* get the ids for the AggregationVariables in the AggregationContainer */
+extern int cfa_inq_var_ids(const int cfa_id, int **varids);
 
 /* get the AggregationVariable from a cfa_var_id */
 extern int cfa_get_var(const int cfa_id, const int cfa_var_id,

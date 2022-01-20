@@ -6,7 +6,8 @@
 #include "cfa_mem.h"
 #include "parsers/cfa_netcdf.h"
 
-/* Start of the resizeable array in memory */
+/* Start of the containers resizeable array in memory
+   These containers can contain CFA Files or Groups */
 static DynamicArray *cfa_conts = NULL;
 
 /* 
@@ -31,14 +32,14 @@ cfa_create(const char *path, int *cfa_idp)
     /* add the path */
     cfa_node->path = strdup(path);
 
-    /* set var pointer to NULL */
-    cfa_node->cfa_varp = NULL;
+    /* set number of vars to 0 */
+    cfa_node->n_vars = 0;
 
-    /* set dim pointer to NULL */
-    cfa_node->cfa_dimp = NULL;
+    /* set number of dims to 0 */
+    cfa_node->n_dims = 0;
 
-    /* set container ponter to NULL */
-    cfa_node->cfa_containerp = NULL;
+    /* set number of containers to 0 */
+    cfa_node->n_conts = 0;
 
     /* get the identifier as the last node of the array*/
     int cfa_ncont = 0;
@@ -166,8 +167,8 @@ cfa_free_containers(void)
     {
         cfa_err = get_array_node(&cfa_conts, i, (void**)(&(cfa_node)));
         CFA_CHECK(cfa_err);
-        /* path of NULL indicates node has been freed */
-        if (cfa_node->path)
+        /* path == NULL and name == NULL indicates node has been freed */
+        if (cfa_node->path || cfa_node->name)
             nfc += 1;
     }
     /* if number of non-free containers is 0 then free the array */

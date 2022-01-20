@@ -31,6 +31,7 @@ test_cfa_def_dim(void)
     assert(cfa_err == CFA_NOERR);
     cfa_err = cfa_memcheck();
     assert(cfa_err == CFA_NOERR);
+    printf("Completed test_cfa_def_dim\n");
 }
 
 void 
@@ -68,6 +69,7 @@ test_cfa_inq_dim_id(void)
     assert(cfa_err == CFA_NOT_FOUND_ERR);
     cfa_err = cfa_memcheck();
     assert(cfa_err == CFA_NOERR);
+    printf("Completed test_cfa_inq_dim_id\n");
 }
 
 void 
@@ -100,6 +102,7 @@ test_cfa_inq_ndims(void)
     assert(cfa_err == CFA_NOERR);
     cfa_err = cfa_memcheck();
     assert(cfa_err == CFA_NOERR);
+    printf("Completed test_cfa_inq_ndims\n");
 }
 
 void 
@@ -112,7 +115,7 @@ test_cfa_get_dim(void)
 
     /* try to get before creating the container */
     cfa_err = cfa_get_dim(cfa_id, cfa_dim_id, &cfa_dim);
-    assert(cfa_err == CFA_NOT_FOUND_ERR);
+    assert(cfa_err == CFA_DIM_NOT_FOUND_ERR);
     /* create the container */
     cfa_err = cfa_create(test_file_path, &cfa_id);
     assert(cfa_err == CFA_NOERR);
@@ -130,15 +133,16 @@ test_cfa_get_dim(void)
     assert(cfa_err == CFA_DIM_NOT_FOUND_ERR);
     /* get a none-existent AggregatedDimension in a none-existing cfa_id*/
     cfa_err = cfa_get_dim(cfa_id+1, cfa_dim_id+1, &cfa_dim);
-    assert(cfa_err == CFA_NOT_FOUND_ERR);
+    assert(cfa_err == CFA_DIM_NOT_FOUND_ERR);
     /* close the AggregationContainer, then try to get the AggregatedDimension
     */
     cfa_err = cfa_close(cfa_id);
     assert(cfa_err == CFA_NOERR);
     cfa_err = cfa_get_dim(cfa_id, cfa_dim_id, &cfa_dim);
-    assert(cfa_err == CFA_NOT_FOUND_ERR);
+    assert(cfa_err == CFA_DIM_NOT_FOUND_ERR);
     cfa_err = cfa_memcheck();
     assert(cfa_err == CFA_NOERR);
+    printf("Completed test_cfa_get_dim\n");
 }
 
 int 

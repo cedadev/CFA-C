@@ -4,7 +4,7 @@
 #include "cfa.h"
 
 /* note that the examples/Makefile has to be run before running this test */
-const char* test_file_path = "examples/example7.nc";
+const char* test_file_path = "examples/example6.nc";
 
 int
 output(const int cfa_id)
@@ -20,10 +20,14 @@ output(const int cfa_id)
     int cfa_ndims;
     err = cfa_inq_ndims(cfa_id, &cfa_ndims);
     CFA_CHECK(err);
+    int *cfa_dimids;
+    err = cfa_inq_dim_ids(cfa_id, &cfa_dimids);
+    CFA_CHECK(err);
+
     AggregatedDimension *agg_dim;
     for (int d=0; d<cfa_ndims; d++)
     {
-        err = cfa_get_dim(cfa_id, d, &agg_dim);
+        err = cfa_get_dim(cfa_id, cfa_dimids[d], &agg_dim);
         CFA_CHECK(err);
         printf("\t%-20s %4i\n", agg_dim->name, agg_dim->len);
     }
@@ -32,10 +36,14 @@ output(const int cfa_id)
     int cfa_nvars;
     err = cfa_inq_nvars(cfa_id, &cfa_nvars);
     CFA_CHECK(err);
+    int *cfa_varids;
+    err = cfa_inq_var_ids(cfa_id, &cfa_varids);
+    CFA_CHECK(err);
+
     AggregationVariable *agg_var;
     for (int v=0; v<cfa_nvars; v++)
     {
-        err = cfa_get_var(cfa_id, v, &agg_var);
+        err = cfa_get_var(cfa_id, cfa_varids[v], &agg_var);
         CFA_CHECK(err);
         printf("\t%-23s (\n", agg_var->name);
         /* print the attached dimensions */
