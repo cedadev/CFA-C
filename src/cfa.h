@@ -134,13 +134,31 @@ extern int cfa_get(const int cfa_id, AggregationContainer **agg_cont);
 /* close a AggregationContainer */
 extern int cfa_close(const int cfa_id);
 
+/* create an AggregationContainer within another AggregationContainer */
+extern int cfa_def_cont(const int cfa_id, const char* name, int *cfa_cont_idp);
+
+/* get the identifier of an AggregationContainer within another 
+AggregationContainer, using the name */
+extern int cfa_inq_cont_id(const int cfa_id, const char *name, 
+                           int *cfa_cont_idp);
+
+/* return the number AggregationContainers inside another AggregationContainer*/
+extern int cfa_inq_nconts(const int cfa_id, int *ncontp);
+
+/* get the ids for the AggregationContainers in the AggregationContainer */
+extern int cfa_inq_cont_ids(const int cfa_id, int **contids);
+
+/* get the AggregationContainer from a cfa_cont_id */
+extern int cfa_get_cont(const int cfa_id, const int cfa_cont_id,
+                        AggregationContainer **agg_cont);
+
 /* create a AggregatedDimension, attach it to a cfa_id */
 extern int cfa_def_dim(const int cfa_id, const char *name, 
-                        const int len, int *cfa_dim_idp);
+                       const int len, int *cfa_dim_idp);
 
 /* Get the identifier of an AggregatedDimension */
 extern int cfa_inq_dim_id(const int cfa_id, const char* name, 
-                           int *cfa_dim_idp);
+                          int *cfa_dim_idp);
 
 /* return the number of AggregatedDimensions that have been defined */
 extern int cfa_inq_ndims(const int cfa_id, int *ndimp);
@@ -171,7 +189,7 @@ extern int cfa_var_def_agg_instr(const int cfa_id, const int cfa_var_id,
 
 /* get the identifier of an AggregationVariable by name */
 extern int cfa_inq_var_id(const int cfa_id, const char* name, 
-                           int *cfa_dim_idp);
+                          int *cfa_dim_idp);
 
 /* get the number of AggregationVariables defined */
 extern int cfa_inq_nvars(const int cfa_id, int *nvarp);

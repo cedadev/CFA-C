@@ -49,6 +49,11 @@
             "command": "make",
             "args": ["test_cfa_load"],
         },
+        {
+            "label": "build_test_cfa_cont",
+            "command": "make",
+            "args": ["test_cfa_cont"],
+        },
     ],
     "version": "2.0.0"
 }
