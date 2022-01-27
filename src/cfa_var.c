@@ -4,6 +4,9 @@
 #include "cfa.h"
 #include "cfa_mem.h"
 
+/* Start of the variables resizeable array in memory */
+DynamicArray *cfa_vars = NULL;
+
 /* 
 create a AggregationVariable container, attach it to a AggregationContainer and one or more AggregatedDimension(s) and assign it to a cfa_var_id
 */
@@ -15,19 +18,17 @@ cfa_def_var(int cfa_id, const char *name, int *cfa_var_idp)
     int cfa_err = cfa_get(cfa_id, &agg_cont);
     CFA_CHECK(cfa_err);
 
-    /*
-    if no variables have been defined previously, then the agg_cont->cfa_varp 
-    pointer will be NULL
-    */
-    if (!(agg_cont->cfa_varp))
+    /* if no variables have been defined previously, then the cfa_vars pointer
+       will still be NULL : create the array */
+    if (!cfa_vars)
     {
-        cfa_err = create_array(&(agg_cont->cfa_varp),
-                    sizeof(AggregationVariable));
+        cfa_err = create_array(&(cfa_vars), sizeof(AggregationVariable));
         CFA_CHECK(cfa_err);
     }
-    /* Array is create so now allocate and return the array node */
+
+    /* Allocate and return the array node */
     AggregationVariable *var_node = NULL;
-    cfa_err = create_array_node(&(agg_cont->cfa_varp), (void**)(&var_node));
+    cfa_err = create_array_node(&(cfa_vars), (void**)(&var_node));
     CFA_CHECK(cfa_err);
 
     /* assign the name */
@@ -35,7 +36,7 @@ cfa_def_var(int cfa_id, const char *name, int *cfa_var_idp)
 
     /* allocate the AggregationVariable identifier */
     int cfa_nvar = 0;
-    cfa_err = get_array_length(&(agg_cont->cfa_varp), &cfa_nvar);
+    cfa_err = get_array_length(&(cfa_vars), &cfa_nvar);
     CFA_CHECK(cfa_err);
 
     /* allocate the AggregationInstructions struct */
@@ -47,6 +48,9 @@ cfa_def_var(int cfa_id, const char *name, int *cfa_var_idp)
     
     /* write back the cfa_var_id */
     *cfa_var_idp = cfa_nvar - 1;
+
+    /* assign to the container */
+    agg_cont->cfa_varids[agg_cont->n_vars++] = *cfa_var_idp;
 
     return CFA_NOERR;
 }
@@ -134,22 +138,15 @@ cfa_inq_var_id(const int cfa_id, const char* name, int *cfa_var_idp)
     CFA_CHECK(cfa_err);
 
     /* search through the variables, looking for the matching name */
-    int cfa_nvar = 0;
-    cfa_err = get_array_length(&(agg_cont->cfa_varp), &cfa_nvar);
-    if (cfa_err)
-    {
-        if (cfa_err == CFA_MEM_ERR)
-            return CFA_VAR_NOT_FOUND_ERR;
-        else
-            return cfa_err;
-    }
 
     AggregationVariable *cvar = NULL;
-    for (int i=0; i<cfa_nvar; i++)
+    for (int i=0; i<agg_cont->n_vars; i++)
     {
         /* variables that belong to a closed AggregationContainer have their
         name set to NULL */
-        cfa_err = get_array_node(&(agg_cont->cfa_varp), i, (void**)(&cvar));
+        cfa_err = get_array_node(&(cfa_vars), 
+                                 agg_cont->cfa_varids[i], 
+                                 (void**)(&cvar));
         CFA_CHECK(cfa_err);
 
         if (!(cvar->name))
@@ -157,7 +154,7 @@ cfa_inq_var_id(const int cfa_id, const char* name, int *cfa_var_idp)
         if (strcmp(cvar->name, name) == 0)
         {
             /* found, so assign and return */
-            *cfa_var_idp = i;
+            *cfa_var_idp = agg_cont->cfa_varids[i];
             return CFA_NOERR;
         }
     }
@@ -173,14 +170,22 @@ cfa_inq_nvars(const int cfa_id, int *nvarp)
     AggregationContainer *agg_cont = NULL;
     int cfa_err = cfa_get(cfa_id, &agg_cont);
     CFA_CHECK(cfa_err);
-    if (!(agg_cont->cfa_varp))
-    {
-        *nvarp = 0;
-        return CFA_NOERR;
-    }
-    cfa_err = get_array_length(&(agg_cont->cfa_varp), nvarp);
+    *nvarp = agg_cont->n_vars;
+
+    return CFA_NOERR;
+}
+
+/* 
+get the ids for the AggregationVariables in the AggregationContainer 
+*/
+int 
+cfa_inq_var_ids(const int cfa_id, int **varids)
+{
+    AggregationContainer *agg_cont = NULL;
+    int cfa_err = cfa_get(cfa_id, &agg_cont);
     CFA_CHECK(cfa_err);
 
+    *varids = agg_cont->cfa_varids;
     return CFA_NOERR;
 }
 
@@ -191,31 +196,46 @@ int
 cfa_get_var(const int cfa_id, const int cfa_var_id,
             AggregationVariable **agg_var)
 {
+    /*
+    check that the array has been created yet 
+    */
+    if (!cfa_vars)
+        return CFA_VAR_NOT_FOUND_ERR;
+
 #ifdef _DEBUG
     /* check id is in range */
     int cfa_nvars = 0;
-    int cfa_err_v = cfa_inq_nvars(cfa_id, &cfa_nvars);
-    if (cfa_err_v)
-        return cfa_err_v;
+    int cfa_err_v = get_array_length(&(cfa_vars), &cfa_nvars);
+    CFA_CHECK(cfa_err_v);
     if (cfa_nvars == 0)
         return CFA_VAR_NOT_FOUND_ERR;
     if (cfa_var_id < 0 || cfa_var_id >= cfa_nvars)
         return CFA_VAR_NOT_FOUND_ERR;
-#endif
-
+    /* check id belongs to AggregationContainer */
     AggregationContainer *agg_cont = NULL;
     int cfa_err = cfa_get(cfa_id, &agg_cont);
     CFA_CHECK(cfa_err);
-
+    int var_in_cont = 0;
+    for (int i=0; i<agg_cont->n_vars; i++)
+        if (agg_cont->cfa_varids[i] == cfa_var_id)
+        {
+            var_in_cont = 1;
+            break;
+        }
+    if (!var_in_cont)
+        return CFA_DIM_NOT_FOUND_ERR;
+#endif
     /* 
-    check that the path is not NULL.  On cfa_close, the path is set to NULL 
+    check that the name is not NULL.  On cfa_close, the name is set to NULL 
     */
-    cfa_err = get_array_node(&(agg_cont->cfa_varp), cfa_var_id, 
-                             (void**)(agg_var));
+    cfa_err = get_array_node(&(cfa_vars), cfa_var_id, (void**)(agg_var));
     CFA_CHECK(cfa_err);
 
     if (!(*agg_var)->name)
+    {
+        agg_var = NULL;
         return CFA_VAR_NOT_FOUND_ERR;
+    }
 
     return CFA_NOERR;
 }
@@ -230,21 +250,14 @@ cfa_free_vars(const int cfa_id)
     AggregationContainer *agg_cont = NULL;
     int cfa_err = cfa_get(cfa_id, &agg_cont);
     CFA_CHECK(cfa_err);
-    /* get the number of variables this could be zero if none created yet*/
-    int n_vars = 0;
-    if (agg_cont->cfa_varp)
-    {
-        cfa_err = get_array_length(&(agg_cont->cfa_varp), &n_vars);
-        CFA_CHECK(cfa_err); 
-    }
-    else
-        return CFA_NOERR;
 
     /* loop over all the variables and free any associated memory */
     AggregationVariable *agg_var = NULL;
-    for (int i=0; i<n_vars; i++)
+    for (int i=0; i<agg_cont->n_vars; i++)
     {
-        cfa_err = get_array_node(&(agg_cont->cfa_varp), i, (void**)(&agg_var));
+        cfa_err = get_array_node(&(cfa_vars), 
+                                 agg_cont->cfa_varids[i], 
+                                 (void**)(&agg_var));
         CFA_CHECK(cfa_err);
         if (agg_var->name)
         {
@@ -276,8 +289,34 @@ cfa_free_vars(const int cfa_id)
             agg_var->cfa_instructionsp = NULL;
         }
     }
-    /* free the array memory */
-    cfa_err = free_array(&(agg_cont->cfa_varp));
-    CFA_CHECK(cfa_err);
+    /* check whether all cfa_vars are free (name=NULL) and free the DynamicArray
+    holding all the AggregationVariables if they are */
+    /* first check that cfa_vars != NULL - which it will be if it hasn't been
+    created yet, or has been previously destroyed */
+    if (cfa_vars)
+    {
+        int n_vars = 0;
+        cfa_err = get_array_length(&cfa_vars, &n_vars);
+        CFA_CHECK(cfa_err);
+        int nfv = 0;
+        AggregationVariable *cfa_node = NULL;
+        
+        for (int i=0; i<n_vars; i++)
+        {
+            cfa_err = get_array_node(&cfa_vars, i, (void**)(&(cfa_node)));
+            CFA_CHECK(cfa_err);
+            /* name == NULL indicates node has been freed */
+            if (cfa_node->name)
+                nfv += 1;
+        }
+        /* if number of non-free dimensions is 0 then free the array */
+        if (nfv == 0)
+        {
+            cfa_err = free_array(&cfa_vars);
+            CFA_CHECK(cfa_err);
+            cfa_vars = NULL;
+        }
+    }
+
     return CFA_NOERR;
 }

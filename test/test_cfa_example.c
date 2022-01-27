@@ -31,15 +31,19 @@ main(void)
     cfa_err = cfa_def_dim(cfa_id, "time", 365, &cfa_time_id);
     CFA_ERR(cfa_err);
 
+    /* get the number of dimensions and the dimension ids */
+ 
     int ndims = 0;
     cfa_err = cfa_inq_ndims(cfa_id, &ndims);
     CFA_ERR(cfa_err);
+    int *dimids = NULL;
+    cfa_err = cfa_inq_dim_ids(cfa_id, &dimids);
+    CFA_ERR(cfa_err);
 
     AggregatedDimension *agg_dim = NULL;
-
     for(int i=0; i<ndims; i++)
     {
-        cfa_err = cfa_get_dim(cfa_id, i, &agg_dim);
+        cfa_err = cfa_get_dim(cfa_id, dimids[i], &agg_dim);
         CFA_ERR(cfa_err)
         printf("%i: %i : ", i, agg_dim->len);
         printf("%s\n", agg_dim->name);

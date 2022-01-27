@@ -81,5 +81,18 @@
             },  
             "preLaunchTask": "build_test_cfa_load"
         },
+
+        {
+            "name": "test_cfa_containers",
+            "program": "${workspaceRoot}/build/test_cfa_cont",
+            "type": "cppdbg",
+            "request": "launch",
+            "cwd": "${workspaceRoot}",
+            "targetArchitecture": "x64",
+            "osx": {
+                "MIMode": "lldb"
+            },  
+            "preLaunchTask": "build_test_cfa_cont"
+        },
     ]
 }

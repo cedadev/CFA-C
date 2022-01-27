@@ -4,6 +4,9 @@
 #include "cfa.h"
 #include "cfa_mem.h"
 
+/* Start of the dimensions resizeable array in memory */
+DynamicArray *cfa_dims = NULL;
+
 /*
 create an AggregatedDimension, attach it to a cfa_id
 */
@@ -16,18 +19,17 @@ cfa_def_dim(const int cfa_id, const char *name, const int len, int *cfa_dim_idp)
     CFA_CHECK(cfa_err);
 
     /* 
-    if no dimensions have been defined previously, then the agg_cont->cfa_dimp 
+    if no dimensions have been defined previously, then the cfa_dims pointer 
     will still be NULL
     */
-    if (!(agg_cont->cfa_dimp))
+    if (!(cfa_dims))
     {
-        cfa_err = create_array(&(agg_cont->cfa_dimp), 
-                    sizeof(AggregatedDimension));
+        cfa_err = create_array(&(cfa_dims), sizeof(AggregatedDimension));
         CFA_CHECK(cfa_err);
     }
     /* array is created so now create and return the array node */
     AggregatedDimension *dim_node = NULL;
-    cfa_err = create_array_node(&(agg_cont->cfa_dimp), (void**)(&dim_node));
+    cfa_err = create_array_node(&(cfa_dims), (void**)(&dim_node));
     CFA_CHECK(cfa_err);
 
     /* copy the length and name to the dimension */
@@ -36,10 +38,14 @@ cfa_def_dim(const int cfa_id, const char *name, const int len, int *cfa_dim_idp)
 
     /* get the length of the AggregatedDimension array - the id is len-1 */
     int cfa_ndim = 0;
-    cfa_err = get_array_length(&(agg_cont->cfa_dimp), &cfa_ndim);
+    cfa_err = get_array_length(&(cfa_dims), &cfa_ndim);
     CFA_CHECK(cfa_err);
 
+    /* write back the cfa_dim_id */
     *cfa_dim_idp = cfa_ndim - 1;
+
+    /* assign to the container */
+    agg_cont->cfa_dimids[agg_cont->n_dims++] = *cfa_dim_idp;
 
     return CFA_NOERR;
 }
@@ -55,24 +61,15 @@ cfa_inq_dim_id(const int cfa_id, const char* name, int *cfa_dim_idp)
     int cfa_err = cfa_get(cfa_id, &agg_cont);
     CFA_CHECK(cfa_err);
 
-
     /* search through the dimensions, looking for the matching name */
-    int cfa_ndim = 0;
-    cfa_err = get_array_length(&(agg_cont->cfa_dimp), &cfa_ndim);
-    if (cfa_err)
-    {
-        if (cfa_err == CFA_MEM_ERR)
-            return CFA_DIM_NOT_FOUND_ERR;
-        else
-            return cfa_err;
-    }
-
     AggregatedDimension *cdim = NULL;
-    for (int i=0; i<cfa_ndim; i++)
+    for (int i=0; i<agg_cont->n_dims; i++)
     {
         /* dimensions that belong to a closed AggregationContainer have their
         name set to NULL */
-        cfa_err = get_array_node(&(agg_cont->cfa_dimp), i, (void**)(&cdim));
+        cfa_err = get_array_node(&(cfa_dims), 
+                                 agg_cont->cfa_dimids[i], 
+                                 (void**)(&cdim));
         CFA_CHECK(cfa_err);
 
         if (!(cdim->name))
@@ -80,7 +77,7 @@ cfa_inq_dim_id(const int cfa_id, const char* name, int *cfa_dim_idp)
         if (strcmp(cdim->name, name) == 0)
         {
             /* found, so assign and return */
-            *cfa_dim_idp = i;
+            *cfa_dim_idp = agg_cont->cfa_dimids[i];
             return CFA_NOERR;
         }
     }
@@ -97,14 +94,21 @@ cfa_inq_ndims(const int cfa_id, int *ndimp)
     int cfa_err = cfa_get(cfa_id, &agg_cont);
     CFA_CHECK(cfa_err);
 
-    if (!(agg_cont->cfa_dimp))
-    {
-        *ndimp = 0;
-        return CFA_NOERR;
-    }
-    cfa_err = get_array_length(&(agg_cont->cfa_dimp), ndimp);
+    *ndimp = agg_cont->n_dims;
+    return CFA_NOERR;
+}
+
+/* 
+get the ids for the AggregatedDimensions in the AggregationContainer 
+*/
+int 
+cfa_inq_dim_ids(const int cfa_id, int **dimids)
+{
+    AggregationContainer *agg_cont = NULL;
+    int cfa_err = cfa_get(cfa_id, &agg_cont);
     CFA_CHECK(cfa_err);
 
+    *dimids = agg_cont->cfa_dimids;
     return CFA_NOERR;
 }
 
@@ -115,26 +119,41 @@ int
 cfa_get_dim(const int cfa_id, const int cfa_dim_id, 
             AggregatedDimension **agg_dim)
 {
+    /*
+    check that the array has been created yet 
+    */
+    if (!cfa_dims)
+        return CFA_DIM_NOT_FOUND_ERR;
+
 #ifdef _DEBUG
     /* check id is in range */
     int cfa_ndims = 0;
-    int cfa_err_d = cfa_inq_ndims(cfa_id, &cfa_ndims);
-    if (cfa_err_d)
-        return cfa_err_d;
+    int cfa_err_d = get_array_length(&(cfa_dims), &cfa_ndims);
+    CFA_CHECK(cfa_err_d);
+    if (cfa_ndims == 0)
+        return CFA_DIM_NOT_FOUND_ERR;
+
     if (cfa_dim_id < 0 || cfa_dim_id >= cfa_ndims)
         return CFA_DIM_NOT_FOUND_ERR;
-#endif
-
-    AggregationContainer* agg_cont = NULL;
+    /* check id belongs to AggregationContainer */
+    AggregationContainer *agg_cont = NULL;
     int cfa_err = cfa_get(cfa_id, &agg_cont);
     CFA_CHECK(cfa_err);
-
+    int dim_in_cont = 0;
+    for (int i=0; i<agg_cont->n_dims; i++)
+        if (agg_cont->cfa_dimids[i] == cfa_dim_id)
+        {
+            dim_in_cont = 1;
+            break;
+        }
+    if (!dim_in_cont)
+        return CFA_DIM_NOT_FOUND_ERR;
+#endif
 
     /* 
     check that the path is not NULL.  On cfa_close, the path is set to NULL 
     */
-    cfa_err = get_array_node(&(agg_cont->cfa_dimp), cfa_dim_id, 
-                             (void**)(agg_dim));
+    cfa_err = get_array_node(&(cfa_dims), cfa_dim_id, (void**)(agg_dim));
     CFA_CHECK(cfa_err);
 
     if (!(*agg_dim)->name)
@@ -157,21 +176,13 @@ cfa_free_dims(const int cfa_id)
     int cfa_err = cfa_get(cfa_id, &agg_cont);
     CFA_CHECK(cfa_err);
 
-    /* get the number of dimensions, this could be zero if none created yet */
-    int n_dims = 0;
-    if (agg_cont->cfa_dimp)
-    {
-        cfa_err = get_array_length(&(agg_cont->cfa_dimp), &n_dims);
-        CFA_CHECK(cfa_err);
-    }
-    else
-        return CFA_NOERR;
-
     /* loop over the dimensions, freeing memory as we go */
     AggregatedDimension *agg_dim = NULL;
-    for (int i=0; i<n_dims; i++)
+    for (int i=0; i<agg_cont->n_dims; i++)
     {
-        cfa_err = get_array_node(&(agg_cont->cfa_dimp), i, (void**)(&agg_dim));
+        cfa_err = get_array_node(&(cfa_dims), 
+                                 agg_cont->cfa_dimids[i], 
+                                 (void**)(&agg_dim));
         CFA_CHECK(cfa_err);
         if (agg_dim->name)
         {
@@ -179,9 +190,33 @@ cfa_free_dims(const int cfa_id)
             agg_dim->name = NULL;
         }        
     }
-    /* free the array memory */
-    cfa_err = free_array(&(agg_cont->cfa_dimp));
-    CFA_CHECK(cfa_err);
+    /* check whether all cfa_dims are free (name=NULL) and free the DynamicArray
+    holding all the AggregatedDimensions if they are */
+    /* first check that cfa_dims != NULL */
+    if (cfa_dims)
+    {
+        int n_dims = 0;
+        cfa_err = get_array_length(&cfa_dims, &n_dims);
+        CFA_CHECK(cfa_err);
+        int nfd = 0;
+        AggregatedDimension *cfa_node = NULL;
+        
+        for (int i=0; i<n_dims; i++)
+        {
+            cfa_err = get_array_node(&cfa_dims, i, (void**)(&(cfa_node)));
+            CFA_CHECK(cfa_err);
+            /* name == NULL indicates node has been freed */
+            if (cfa_node->name)
+                nfd += 1;
+        }
+        /* if number of non-free dimensions is 0 then free the array */
+        if (nfd == 0)
+        {
+            cfa_err = free_array(&cfa_dims);
+            CFA_CHECK(cfa_err);
+            cfa_dims = NULL;
+        }
+    }
 
     return CFA_NOERR;
 }

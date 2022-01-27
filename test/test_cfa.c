@@ -23,6 +23,7 @@ test_cfa_create(void)
     /* check the memory is freed */
     cfa_err = cfa_memcheck();
     assert(cfa_err == CFA_NOERR);
+    printf("Completed test_cfa_create\n");
 }
 
 void 
@@ -42,6 +43,7 @@ test_cfa_close()
     /* check the memory is freed */
     cfa_err = cfa_memcheck();
     assert(cfa_err == CFA_NOERR);
+    printf("Completed test_cfa_close\n");
 }
 
 void 
@@ -70,6 +72,7 @@ test_cfa_inq_id(void)
     /* check the memory is freed */
     cfa_err = cfa_memcheck();
     assert(cfa_err == CFA_NOERR);
+    printf("Completed test_cfa_inq_id\n");
 }
 
 void 
@@ -98,6 +101,7 @@ test_cfa_get(void)
     /* check the memory is freed */
     cfa_err = cfa_memcheck();
     assert(cfa_err == CFA_NOERR);
+    printf("Completed test_cfa_get\n");
 }
 
 void 
@@ -126,6 +130,7 @@ test_cfa_inq_n(void)
     /* check the memory is freed */
     cfa_err = cfa_memcheck();
     assert(cfa_err == CFA_NOERR);
+    printf("Completed test_cfa_inq_n\n");
 }
 
 int 

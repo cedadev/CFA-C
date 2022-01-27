@@ -6,8 +6,9 @@
 #include "cfa_mem.h"
 #include "parsers/cfa_netcdf.h"
 
-/* Start of the resizeable array in memory */
-static DynamicArray *cfa_conts = NULL;
+/* Start of the containers resizeable array in memory
+   These containers can contain CFA Files or Groups */
+DynamicArray *cfa_conts = NULL;
 
 /* 
 create a CFA AggregationContainer and assign it to cfa_idp
@@ -28,19 +29,20 @@ cfa_create(const char *path, int *cfa_idp)
     cfa_err = create_array_node(&cfa_conts, (void**)(&cfa_node));
     CFA_CHECK(cfa_err);
 
-    /* add the path */
+    /* add the path, name to NULL */
     cfa_node->path = strdup(path);
+    cfa_node->name = NULL;
 
-    /* set var pointer to NULL */
-    cfa_node->cfa_varp = NULL;
+    /* set number of vars to 0 */
+    cfa_node->n_vars = 0;
 
-    /* set dim pointer to NULL */
-    cfa_node->cfa_dimp = NULL;
+    /* set number of dims to 0 */
+    cfa_node->n_dims = 0;
 
-    /* set container ponter to NULL */
-    cfa_node->cfa_containerp = NULL;
+    /* set number of containers to 0 */
+    cfa_node->n_conts = 0;
 
-    /* get the identifier as the last node of the array*/
+    /* get the identifier as the last node of the array */
     int cfa_ncont = 0;
     cfa_err = get_array_length(&cfa_conts, &cfa_ncont);
     CFA_CHECK(cfa_err);
@@ -142,46 +144,15 @@ cfa_get(const int cfa_id, AggregationContainer **agg_cont)
     int cfa_err = get_array_node(&cfa_conts, cfa_id, (void**)(agg_cont));
     CFA_CHECK(cfa_err);
     /* 
-    check that the path is not NULL.  On cfa_close, the path is set to NULL 
+    check that the path or name is not NULL.  On cfa_close, the path or name is
+    set to NULL 
     */
-    if (!(*agg_cont)->path)
-        return CFA_NOT_FOUND_ERR;
-    return CFA_NOERR;
+    if ((*agg_cont)->path || (*agg_cont)->name)
+        return CFA_NOERR;
+    return CFA_NOT_FOUND_ERR;
 }
 
-/*
-free the memory used by the Aggregation containers
-*/
-int
-cfa_free_containers(void)
-{
-    /* get the aggregation container struct */
-    AggregationContainer *cfa_node = NULL;
-    /* get the number of none freed array nodes */
-    int n_conts = 0;
-    int cfa_err = get_array_length(&cfa_conts, &n_conts);
-    CFA_CHECK(cfa_err);
-    int nfc = 0;
-    for (int i=0; i<n_conts; i++)
-    {
-        cfa_err = get_array_node(&cfa_conts, i, (void**)(&(cfa_node)));
-        CFA_CHECK(cfa_err);
-        /* path of NULL indicates node has been freed */
-        if (cfa_node->path)
-            nfc += 1;
-    }
-    /* if number of non-free containers is 0 then free the array */
-    if (nfc == 0)
-    {
-        cfa_err = free_array(&cfa_conts);
-        cfa_conts = NULL;
-    }
-    CFA_CHECK(cfa_err);
-    return CFA_NOERR;
-}
-
-extern int cfa_free_vars(const int);
-extern int cfa_free_dims(const int);
+extern int cfa_free_cont(const int);
 /* close a CFA AggregationContainer container */
 int cfa_close(const int cfa_id)
 {
@@ -203,21 +174,9 @@ int cfa_close(const int cfa_id)
     CFA_CHECK(cfa_err);
     if (cfa_node)
     {
-        /* free the variables and the dimensions */
-        cfa_err = cfa_free_vars(cfa_id);
+        /* free containers */
+        cfa_err = cfa_free_cont(cfa_id);
         CFA_CHECK(cfa_err);
-        cfa_err = cfa_free_dims(cfa_id);
-        CFA_CHECK(cfa_err);
-        /* free memory of dynamically allocated components */
-        if (cfa_node->path)
-        {
-            /* free the path string */
-            cfa_free(cfa_node->path, strlen(cfa_node->path)+1);
-            cfa_node->path = NULL;
-        }
-    }
-    /* check and free the overall container if empty */
-    cfa_err = cfa_free_containers();
-    CFA_CHECK(cfa_err);
+   }
     return CFA_NOERR;
 }
