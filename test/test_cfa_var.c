@@ -5,6 +5,7 @@
 
 const char* test_file_path = "examples/test1.nc";
 const char* var_name = "tas";
+extern DynamicArray *cfa_vars;
 
 int
 create_variable(const int cfa_id)
@@ -82,7 +83,7 @@ test_cfa_inq_var_id(void)
     /* find an id, by name, that exists - this will be the length of the
        variable array -1 */
     cfa_err = cfa_inq_var_id(cfa_id, var_name, &cfa_var_id);
-    cfa_err = cfa_inq_nvars(cfa_id, &cfa_var_n);
+    cfa_err = get_array_length(&cfa_vars, &cfa_var_n);
     assert(cfa_var_id == cfa_var_n-1);
     /* find an id that doesn't exist */
     cfa_err = cfa_inq_var_id(cfa_id, "bogus name", &cfa_var_id);

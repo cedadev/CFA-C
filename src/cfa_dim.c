@@ -5,7 +5,7 @@
 #include "cfa_mem.h"
 
 /* Start of the dimensions resizeable array in memory */
-static DynamicArray *cfa_dims = NULL;
+DynamicArray *cfa_dims = NULL;
 
 /*
 create an AggregatedDimension, attach it to a cfa_id
@@ -77,7 +77,7 @@ cfa_inq_dim_id(const int cfa_id, const char* name, int *cfa_dim_idp)
         if (strcmp(cdim->name, name) == 0)
         {
             /* found, so assign and return */
-            *cfa_dim_idp = i;
+            *cfa_dim_idp = agg_cont->cfa_dimids[i];
             return CFA_NOERR;
         }
     }

@@ -201,6 +201,12 @@ extern int cfa_inq_var_ids(const int cfa_id, int **varids);
 extern int cfa_get_var(const int cfa_id, const int cfa_var_id,
                        AggregationVariable **agg_var);
 
+/* info / output command - output the structure of a container, including the
+dimensions, variables and any sub-containers
+  level dictates how much info is output
+*/
+extern int cfa_info(const int cfa_id, const int level);
+
 #define CFA_ERR(cfa_err) if(cfa_err) {printf("CFA error: %i\n", cfa_err); return cfa_err;}
 #define CFA_CHECK(cfa_err) if(cfa_err) {return cfa_err;}
 

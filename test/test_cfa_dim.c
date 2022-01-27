@@ -6,6 +6,7 @@
 const char* test_file_path = "examples/test1.nc";
 const char* dim_name = "latitude";
 const int len = 16;
+extern DynamicArray *cfa_dims;
 
 void 
 test_cfa_def_dim(void)
@@ -57,7 +58,7 @@ test_cfa_inq_dim_id(void)
     /* find an id, by name, that exists - this will be the length of the 
        dimension array - 1 */
     cfa_err = cfa_inq_dim_id(cfa_id, dim_name, &cfa_dim_id);
-    cfa_err = cfa_inq_ndims(cfa_id, &cfa_dim_n);
+    cfa_err = get_array_length(&cfa_dims, &cfa_dim_n);
     assert(cfa_dim_id == cfa_dim_n-1);
     /* find an id that doesn't exist */
     cfa_err = cfa_inq_dim_id(cfa_id, "bogus name", &cfa_dim_id);

@@ -5,7 +5,7 @@
 #include "cfa_mem.h"
 
 /* Start of the variables resizeable array in memory */
-static DynamicArray *cfa_vars = NULL;
+DynamicArray *cfa_vars = NULL;
 
 /* 
 create a AggregationVariable container, attach it to a AggregationContainer and one or more AggregatedDimension(s) and assign it to a cfa_var_id
@@ -154,7 +154,7 @@ cfa_inq_var_id(const int cfa_id, const char* name, int *cfa_var_idp)
         if (strcmp(cvar->name, name) == 0)
         {
             /* found, so assign and return */
-            *cfa_var_idp = i;
+            *cfa_var_idp = agg_cont->cfa_varids[i];
             return CFA_NOERR;
         }
     }

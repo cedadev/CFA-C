@@ -58,7 +58,29 @@ AggregationContainer, using the name
 int 
 cfa_inq_cont_id(const int cfa_id, const char *name, int *cfa_cont_idp)
 {
+    /* get the parent AggregationContainer */
+    AggregationContainer *agg_cont = NULL;
+    int cfa_err = cfa_get(cfa_id, &agg_cont);
+    CFA_CHECK(cfa_err);
 
+    /* search through the containers, looking for the matching name */
+    AggregationContainer *ccont = NULL;
+    for (int i=0; i<agg_cont->n_conts; i++)
+    {
+        cfa_err = get_array_node(&cfa_conts, 
+                                 agg_cont->cfa_contids[i],
+                                 (void**)(&ccont));
+        CFA_CHECK(cfa_err);
+
+        if (!(ccont->name))
+            continue;
+        if (strcmp(ccont->name, name) == 0)
+        {
+            *cfa_cont_idp = agg_cont->cfa_contids[i];
+            return CFA_NOERR;
+        }
+    }
+    return CFA_NOT_FOUND_ERR;
 }
 
 /* 
@@ -67,7 +89,12 @@ return the number AggregationContainers inside another AggregationContainer
 int 
 cfa_inq_nconts(const int cfa_id, int *ncontp)
 {
-    
+    AggregationContainer *agg_cont = NULL;
+    int cfa_err = cfa_get(cfa_id, &agg_cont);
+    CFA_CHECK(cfa_err);
+
+    *ncontp = agg_cont->n_conts;
+    return CFA_NOERR;
 }
 
 /* 
@@ -76,7 +103,12 @@ get the ids for the AggregationContainers in the AggregationContainer
 int
 cfa_inq_cont_ids(const int cfa_id, int **contids)
 {
+    AggregationContainer *agg_cont = NULL;
+    int cfa_err = cfa_get(cfa_id, &agg_cont);
+    CFA_CHECK(cfa_err);
 
+    *contids = agg_cont->cfa_contids;
+    return CFA_NOERR;
 }
 
 /* 
@@ -86,7 +118,8 @@ int
 cfa_get_cont(const int cfa_id, const int cfa_cont_id, 
              AggregationContainer **agg_cont)
 {
-
+    /* can just alias this to cfa_get */
+    return cfa_get(cfa_cont_id, agg_cont);
 }
 
 /*

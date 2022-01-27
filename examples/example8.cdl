@@ -1,0 +1,72 @@
+netcdf {
+
+  // Example 8
+  // An aggregation data variable defined in a child group, with the
+  // aggregation definition variables stored in a different child group called
+  // aggregation.
+
+  // global attributes:
+    :Conventions = "CF-1.9 CFA-0.6" ;
+
+  group: aggregation_variable {
+    // Aggregation dimensions  
+    dimensions:
+      time = 12 ;
+      latitude = 73 ;
+
+    variables:
+      float temp;
+        temp:standard_name = "air_temperature" ;
+        temp:units = "K" ;
+        temp:cell_methods = "lon: mean" ;
+        temp:aggregated_dimensions = "/aggregation_variable/time 
+                                      /aggregation_variable/latitude " ;
+        temp:aggregated_data = "location: /aggregation/location
+                                file: /aggregation/aggregation_file
+                                format: /aggregation/format
+                                address: /aggregation/address" ;
+      float time(time) ;
+        time:standard_name = "time" ;
+        time:units = "days since 1970-01-01" ;
+
+      float latitude(latitude) ;
+        latitude:standard_name = "latitude" ;
+        latitude:units = "degrees_north" ;
+
+    data:
+      time = 0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330 ;
+      latitude = -90.0, -87.5, -85.0, -82.5, -80.0, -77.5, -75.0, -72.5, -70.0,
+               -67.5, -65.0, -62.5, -60.0, -57.5, -55.0, -52.5, -50.0, -47.5,
+               -45.0, -42.5, -40.0, -37.5, -35.0, -32.5, -30.0, -27.5, -25.0,
+               -22.5, -20.0, -17.5, -15.0, -12.5, -10.0,  -7.5,  -5.0,  -2.5,
+                 0.0,   2.5,   5.0,   7.5,  10.0,  12.5,  15.0,  17.5,  20.0,
+                22.5,  25.0,  27.5,  30.0,  32.5,  35.0,  37.5,  40.0,  42.5,
+                45.0,  47.5,  50.0,  52.5,  55.0,  57.5,  60.0,  62.5,  65.0,
+                67.5,  70.0,  72.5,  75.0,  77.5,  80.0,  82.5,  85.0,  87.5,
+                90.0 ;
+      temp = _ ;
+  }
+
+  group: aggregation {
+    dimensions:
+      // Fragment dimensions
+      f_time = 2 ;
+      f_latitude = 2 ;
+      // Extra dimensions
+      i = 2 ;
+      j = 4 ;
+    variables:
+      // Aggregation definition variables
+      int location(i, j) ;
+      string file(f_time, f_latitude) ;
+      string format ;
+      string address(f_time, f_latitude) ;
+
+    data:
+      location = 6, 6,
+                 36, 37 ;
+      file = "file1.nc", "file2.nc" ;
+      format = "nc" ;
+      address = "temp", "temp" ;
+    }
+}
