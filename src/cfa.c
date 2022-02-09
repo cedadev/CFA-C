@@ -153,6 +153,7 @@ cfa_get(const int cfa_id, AggregationContainer **agg_cont)
 }
 
 extern int cfa_free_cont(const int);
+
 /* close a CFA AggregationContainer container */
 int cfa_close(const int cfa_id)
 {
@@ -179,4 +180,68 @@ int cfa_close(const int cfa_id)
         CFA_CHECK(cfa_err);
    }
     return CFA_NOERR;
+}
+
+/* return the size of a type */
+int get_type_size(const cfa_type type)
+{
+    switch (type)
+    {
+        case CFA_NAT:
+            return 0;
+        case CFA_BYTE:
+            return 1;
+        case CFA_CHAR:
+            return 1;
+        case CFA_SHORT:
+            return 2;
+        case CFA_INT:
+            return 4;
+        case CFA_FLOAT:
+            return 4;
+        case CFA_DOUBLE:
+            return 8;
+        case CFA_UBYTE:
+            return 1;
+        case CFA_USHORT:
+            return 2;
+        case CFA_UINT:
+            return 4;
+        case CFA_INT64:
+            return 8;
+        case CFA_UINT64:
+            return 8;
+    }
+}
+
+/* return the type name */
+const char* get_type_name(const cfa_type type)
+{
+    switch (type)
+    {
+        case CFA_NAT:
+            return "nat";
+        case CFA_BYTE:
+            return "byte";
+        case CFA_CHAR:
+            return "char";
+        case CFA_SHORT:
+            return "short int";
+        case CFA_INT:
+            return "int";
+        case CFA_FLOAT:
+            return "float";
+        case CFA_DOUBLE:
+            return "double";
+        case CFA_UBYTE:
+            return "unsigned byte";
+        case CFA_USHORT:
+            return "unsigned short int";
+        case CFA_UINT:
+            return "unsigned int";
+        case CFA_INT64:
+            return "long int";
+        case CFA_UINT64:
+            return "unsigned long int";
+    }    
 }

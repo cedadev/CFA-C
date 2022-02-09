@@ -31,8 +31,8 @@
         },
 
         {
-            "name": "test_cfa_example",
-            "program": "${workspaceRoot}/build/test_cfa_example",
+            "name": "test_cfa_save",
+            "program": "${workspaceRoot}/build/test_cfa_save",
             "type": "cppdbg",
             "request": "launch",
             "cwd": "${workspaceRoot}",
@@ -40,7 +40,7 @@
             "osx": {
                 "MIMode": "lldb"
             },  
-            "preLaunchTask": "build_test_cfa_example"
+            "preLaunchTask": "build_test_cfa_save"
         },
 
         {

@@ -7,11 +7,14 @@
 /* Start of the variables resizeable array in memory */
 DynamicArray *cfa_vars = NULL;
 
+extern int get_type_size(const cfa_type);
+
 /* 
 create a AggregationVariable container, attach it to a AggregationContainer and one or more AggregatedDimension(s) and assign it to a cfa_var_id
 */
 int
-cfa_def_var(int cfa_id, const char *name, int *cfa_var_idp)
+cfa_def_var(int cfa_id, const char *name, const cfa_type vtype, 
+            int *cfa_var_idp)
 {
     /* get the aggregation container */
     AggregationContainer* agg_cont = NULL;
@@ -33,6 +36,10 @@ cfa_def_var(int cfa_id, const char *name, int *cfa_var_idp)
 
     /* assign the name */
     var_node->name = strdup(name);
+
+    /* assign the type */
+    var_node->cfa_dtype.type = vtype;
+    var_node->cfa_dtype.size = get_type_size(vtype);
 
     /* allocate the AggregationVariable identifier */
     int cfa_nvar = 0;
@@ -60,7 +67,7 @@ add the AggregatedDimensions to the AggregationVariable.
 the dimensions have to be previously defined in the AggregationContainer
 */
 int cfa_var_def_dims(const int cfa_id, const int cfa_var_id,
-                     const int ndims, int *cfa_dim_idsp)
+                     const int ndims, const int *cfa_dim_idsp)
 {
     /* get the AggregationVariable from the ids */
     AggregationVariable *agg_var = NULL;
@@ -108,22 +115,34 @@ cfa_var_def_agg_instr(const int cfa_id, const int cfa_var_id,
     AggregationVariable *agg_var;
     int err = cfa_get_var(cfa_id, cfa_var_id, &agg_var);
     CFA_CHECK(err);
-    const char* LOCATION = "location:";
+    const char* LOCATION = "location";
     if (strstr(agg_instr_key, LOCATION))
         agg_var->cfa_instructionsp->location = strdup(agg_instr_val);
     /* file */
-    const char *FILE = "file:";
+    const char *FILE = "file";
     if (strstr(agg_instr_key, FILE))
         agg_var->cfa_instructionsp->file = strdup(agg_instr_val);
     /* format */
-    const char *FORMAT = "format:";
+    const char *FORMAT = "format";
     if (strstr(agg_instr_key, FORMAT))
         agg_var->cfa_instructionsp->format = strdup(agg_instr_val);
     /* address */
-    const char *ADDRESS = "address:";
+    const char *ADDRESS = "address";
     if (strstr(agg_instr_key, ADDRESS))
         agg_var->cfa_instructionsp->address = strdup(agg_instr_val);
     return CFA_NOERR;
+}
+
+/* add the fragment definitions.  There should be one number per dimension in
+the fragments array.  This defines how many times that dimension is 
+subdivided */
+int 
+cfa_var_def_frag(const int cfa_id, const int cfa_var_id, const int *fragments)
+{
+    /* get the CFA AggregationVariable */
+    AggregationVariable *agg_var;
+    int err = cfa_get_var(cfa_id, cfa_var_id, &agg_var);
+    CFA_CHECK(err);
 }
 
 /*

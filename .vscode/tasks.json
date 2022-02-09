@@ -30,9 +30,9 @@
             "args": ["test_cfa_dim"],
         },
         {
-            "label": "build_test_cfa_example",
+            "label": "build_test_cfa_save",
             "command": "make",
-            "args": ["test_cfa_example"],
+            "args": ["test_cfa_save"],
         },
         {
             "label": "build_test_cfa_mem",

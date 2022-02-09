@@ -1,6 +1,8 @@
 @startuml
 
 class DataType {
+    +string type
+    +int size
 }
 
 class Fragment {
@@ -46,9 +48,10 @@ AggregationVariable "1" *--> "1" AggregatedData
 AggregatedData "1" *--> "0..*" Fragment
 Fragment "1" *--> "0..*" FragmentDimension
 AggregatedDimension "1" o--o "1" FragmentDimension : ordered
+AggregatedDimension "1" *-> "1" DataType
 AggregationVariable "1" *--> "1" AggregationInstructions
-AggregationVariable "1" *--> "1" DataType
-Fragment "1" *--> "1" DataType
+AggregationVariable "1" *-> "1" DataType
+Fragment "1" *-> "1" DataType
 AggregationContainer "1" *--> "0..*" AggregationVariable
 AggregationContainer "1" *--> "0..*" AggregatedDimension
 AggregationContainer "1" *--> "0..*" AggregationContainer

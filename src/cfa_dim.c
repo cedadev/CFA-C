@@ -4,6 +4,8 @@
 #include "cfa.h"
 #include "cfa_mem.h"
 
+extern int get_type_size(const cfa_type);
+
 /* Start of the dimensions resizeable array in memory */
 DynamicArray *cfa_dims = NULL;
 
@@ -11,7 +13,8 @@ DynamicArray *cfa_dims = NULL;
 create an AggregatedDimension, attach it to a cfa_id
 */
 int 
-cfa_def_dim(const int cfa_id, const char *name, const int len, int *cfa_dim_idp)
+cfa_def_dim(const int cfa_id, const char *name, const int len, 
+            const cfa_type dtype, int *cfa_dim_idp)
 {
     /* get the AggregationContainer */
     AggregationContainer *agg_cont = NULL;
@@ -35,6 +38,10 @@ cfa_def_dim(const int cfa_id, const char *name, const int len, int *cfa_dim_idp)
     /* copy the length and name to the dimension */
     dim_node->len = len;
     dim_node->name = strdup(name);
+
+    /* assign the type */
+    dim_node->cfa_dtype.type = dtype;
+    dim_node->cfa_dtype.size = get_type_size(dtype);
 
     /* get the length of the AggregatedDimension array - the id is len-1 */
     int cfa_ndim = 0;
@@ -188,7 +195,7 @@ cfa_free_dims(const int cfa_id)
         {
             cfa_free(agg_dim->name, strlen(agg_dim->name)+1);
             agg_dim->name = NULL;
-        }        
+        }
     }
     /* check whether all cfa_dims are free (name=NULL) and free the DynamicArray
     holding all the AggregatedDimensions if they are */
