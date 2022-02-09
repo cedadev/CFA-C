@@ -4,7 +4,7 @@
 #include "cfa.h"
 
 /* note that the examples/Makefile has to be run before running this test */
-const char* test_file_path = "examples/example8.nc";
+const char* test_file_path = "examples/example1_from_code.nc";
 
 void 
 test_cfa_load(void)

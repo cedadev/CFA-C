@@ -5,9 +5,22 @@
 
 #include "cfa_mem.h"
 
-/* CFA metadata identifier string */
-#define CFA_CONVENTION ("CFA-")
-#define CFA_VERSION    ("0.6")
+/* Type constants - these match the netCDF ones, except for strings
+   Currently we are only supporting numeric types
+*/
+#define CFA_NAT          (0)      /**< Not A Type */
+#define CFA_BYTE         (1)      /**< signed 1 byte integer */
+#define CFA_CHAR         (2)      /**< ISO/ASCII character */
+#define CFA_SHORT        (3)      /**< signed 2 byte integer */
+#define CFA_INT          (4)      /**< signed 4 byte integer */
+#define CFA_LONG         (CFA_INT)
+#define CFA_FLOAT        (5)      /**< single precision floating point number */
+#define CFA_DOUBLE       (6)      /**< double precision floating point number */
+#define CFA_UBYTE        (7)      /**< unsigned 1 byte int */
+#define CFA_USHORT       (8)      /**< unsigned 2-byte int */
+#define CFA_UINT         (9)      /**< unsigned 4-byte int */
+#define CFA_INT64        (10)     /**< signed 8-byte int */
+#define CFA_UINT64       (11)     /**< unsigned 8-byte int */
 
 /* ERROR constants */
 /* These start at -500 so we can pass standard netCDF errors back when parsing 
@@ -27,12 +40,21 @@ the file */
                                          /* "aggregated_data" attribute */
 #define CFA_AGG_DIM_ERR           (-544) /* Something went wrong parsing the */
                                          /* "aggregated_dimensions" attribute */
-                                         
+/* CFA metadata identifier string */
+#define CFA_CONVENTION ("CFA-")
+#define CFA_VERSION    ("0.6")
+#define CONVENTIONS    ("Conventions")
+#define AGGREGATED_DIMENSIONS ("aggregated_dimensions")
+#define AGGREGATED_DATA ("aggregated_data")
+
+/* cfa_type is just an int */
+typedef int cfa_type;
+
 /* CFA-structs */
 /* DataType struct */
 typedef struct {
-    char *type;
-    size_t size;
+    cfa_type type;   /* see the constants above for the definitions of types */
+    size_t   size;
 } DataType;
 
 /* FragmentDimension */
@@ -73,6 +95,7 @@ typedef struct {
 typedef struct {
     char *name;
     int len;
+    DataType cfa_dtype;
     FragmentDimension *cfa_frag_dimp;
 } AggregatedDimension;
 
@@ -82,7 +105,7 @@ typedef struct {
     /* dim ids <int> */
     int cfa_ndim;
     int *cfa_dim_idp;
-    DataType *cfa_dtype;
+    DataType cfa_dtype;
     AggregatedData *cfa_datap;
     AggregationInstructions *cfa_instructionsp;
 } AggregationVariable;
@@ -153,8 +176,8 @@ extern int cfa_get_cont(const int cfa_id, const int cfa_cont_id,
                         AggregationContainer **agg_cont);
 
 /* create a AggregatedDimension, attach it to a cfa_id */
-extern int cfa_def_dim(const int cfa_id, const char *name, 
-                       const int len, int *cfa_dim_idp);
+extern int cfa_def_dim(const int cfa_id, const char *name, const int len,
+                       const cfa_type dtype, int *cfa_dim_idp);
 
 /* Get the identifier of an AggregatedDimension */
 extern int cfa_inq_dim_id(const int cfa_id, const char* name, 
@@ -172,11 +195,12 @@ extern int cfa_get_dim(const int cfa_id, const int cfa_dim_id,
 
 /* create an AggregationVariable container, attach it to a cfa_id and one 
 or more cfa_dim_ids and assign it to a cfavarid */
-extern int cfa_def_var(const int cfa_id, const char *name, int *cfa_var_idp);
+extern int cfa_def_var(const int cfa_id, const char *name, 
+                       const cfa_type vtype, int *cfa_var_idp);
 
 /* add the AggregatedDimension ids to to the variable */
 extern int cfa_var_def_dims(const int cfa_id, const int cfa_var_id,
-                            const int ndims, int *cfa_dim_idsp);
+                            const int ndims, const int *cfa_dim_idsp);
 
 /* add the AggregationInstructions from a string 
    the string follows the key: value pair format
@@ -184,11 +208,11 @@ extern int cfa_var_def_dims(const int cfa_id, const int cfa_var_id,
    multiple key: value pairs can be separated by a space
 */
 extern int cfa_var_def_agg_instr(const int cfa_id, const int cfa_var_id,
-                                 const char* agg_instr_key, 
-                                 const char* agg_instr_val);
+                                 const char *agg_instr_key, 
+                                 const char *agg_instr_val);
 
 /* get the identifier of an AggregationVariable by name */
-extern int cfa_inq_var_id(const int cfa_id, const char* name, 
+extern int cfa_inq_var_id(const int cfa_id, const char *name, 
                           int *cfa_dim_idp);
 
 /* get the number of AggregationVariables defined */
@@ -200,6 +224,12 @@ extern int cfa_inq_var_ids(const int cfa_id, int **varids);
 /* get the AggregationVariable from a cfa_var_id */
 extern int cfa_get_var(const int cfa_id, const int cfa_var_id,
                        AggregationVariable **agg_var);
+
+/* add the fragment definitions.  There should be one number per dimension in
+the fragments array.  This defines how many times that dimension is 
+subdivided */
+extern int cfa_var_def_frag(const int cfa_id, const int cfa_var_id,
+                            const int *fragments);
 
 /* info / output command - output the structure of a container, including the
 dimensions, variables and any sub-containers
