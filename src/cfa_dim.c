@@ -216,7 +216,8 @@ cfa_free_dims(const int cfa_id)
             if (cfa_node->name)
                 nfd += 1;
         }
-        /* if number of non-free dimensions is 0 then free the array */
+        /* if number of non-free dimensions is 0 then free the array 
+        and also free the FragmentDimension array */
         if (nfd == 0)
         {
             cfa_err = free_array(&cfa_dims);

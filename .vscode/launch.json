@@ -94,5 +94,29 @@
             },  
             "preLaunchTask": "build_test_cfa_cont"
         },
+        {
+            "name": "example1",
+            "program": "${workspaceRoot}/build/examples/example1",
+            "type": "cppdbg",
+            "request": "launch",
+            "cwd": "${workspaceRoot}",
+            "targetArchitecture": "x64",
+            "osx": {
+                "MIMode": "lldb"
+            },  
+            "preLaunchTask": "build_example1"
+        },
+        {
+            "name": "example3",
+            "program": "${workspaceRoot}/build/examples/example3",
+            "type": "cppdbg",
+            "request": "launch",
+            "cwd": "${workspaceRoot}",
+            "targetArchitecture": "x64",
+            "osx": {
+                "MIMode": "lldb"
+            },  
+            "preLaunchTask": "build_example3"
+        },
     ]
 }

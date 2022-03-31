@@ -6,10 +6,10 @@
 #include "cfa.h"
 #include "parsers/cfa_netcdf.h"
 
-const char* output_path = "examples/example1.nc";
+const char* output_path = "examples/test/test1.nc";
 
 int
-example1(void)
+test1(void)
 {
     /* recreate example 1 from the documentation */
     int cfa_err = -1;
@@ -57,7 +57,32 @@ example1(void)
     CFA_ERR(cfa_err);
     /* add the fragmentation */
     const int frags[4] = {2, 1, 1, 1};
-    cfa_err = cfa_var_def_frag(cfa_id, cfa_varid, &frags);
+    cfa_err = cfa_var_def_frag(cfa_id, cfa_varid, frags);
+    CFA_ERR(cfa_err);
+
+    /* create a second variable with the same dimensions but different 
+    fragments */
+    int cfa_varid2 = -1;
+    cfa_err = cfa_def_var(cfa_id, "temp2", CFA_DOUBLE, &cfa_varid2);
+    CFA_ERR(cfa_err);
+    cfa_err = cfa_var_def_dims(cfa_id, cfa_varid2, 4, cfa_dimids);
+    CFA_ERR(cfa_err);
+    /* add the aggregation instructions */
+    cfa_err = cfa_var_def_agg_instr(cfa_id, cfa_varid2, 
+                                    "location", "aggregation_location2");
+    CFA_ERR(cfa_err);
+    cfa_err = cfa_var_def_agg_instr(cfa_id, cfa_varid2, 
+                                    "file", "aggregation_file2");
+    CFA_ERR(cfa_err);
+    cfa_err = cfa_var_def_agg_instr(cfa_id, cfa_varid2, 
+                                    "format", "aggregation_format2");
+    CFA_ERR(cfa_err);
+    cfa_err = cfa_var_def_agg_instr(cfa_id, cfa_varid2, 
+                                    "address", "aggregation_address2");
+    CFA_ERR(cfa_err);
+    const int frags2[4] = {1, 1, 4, 4};
+    cfa_err = cfa_var_def_frag_size(cfa_id, cfa_varid2, frags2);
+    CFA_ERR(cfa_err);
 
     /* create the netCDF file to save the CFA info into */
     cfa_err = nc_create(output_path, NC_NETCDF4|NC_CLOBBER, &nc_id);
@@ -150,11 +175,20 @@ example1(void)
     CFA_ERR(cfa_err);
 
     /* output info */
-    cfa_err = cfa_info(cfa_id, 0);
+    /*cfa_err = cfa_info(cfa_id, 0);
     CFA_ERR(cfa_err);
-
+    */
     /*  close the netCDF file */
     cfa_err = nc_close(nc_id);
+    CFA_ERR(cfa_err);
+
+    /* close the CFA file */
+    cfa_err = cfa_close(cfa_id);
+    CFA_ERR(cfa_err);
+
+    /* check for memory leaks */
+    cfa_err = cfa_memcheck();
+    CFA_ERR(cfa_err);
 
     return CFA_NOERR;
 }
@@ -162,6 +196,6 @@ example1(void)
 int
 main(void)
 {
-    example1();
+    test1();
     return 0;
 }

@@ -211,6 +211,8 @@ int get_type_size(const cfa_type type)
             return 8;
         case CFA_UINT64:
             return 8;
+        default:
+            return 0;
     }
 }
 
@@ -243,5 +245,7 @@ const char* get_type_name(const cfa_type type)
             return "long int";
         case CFA_UINT64:
             return "unsigned long int";
+        default:
+            return "not found";
     }    
 }

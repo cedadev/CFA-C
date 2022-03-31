@@ -54,6 +54,16 @@
             "command": "make",
             "args": ["test_cfa_cont"],
         },
+        {
+            "label": "build_example1",
+            "command": "make",
+            "args": ["example1"],
+        },
+        {
+            "label": "build_example3",
+            "command": "make",
+            "args": ["example3"],
+        },
     ],
     "version": "2.0.0"
 }

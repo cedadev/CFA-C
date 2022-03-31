@@ -32,6 +32,9 @@ the file */
 #define CFA_NOT_FOUND_ERR         (-510) /* Cannot find CFA Container */
 #define CFA_DIM_NOT_FOUND_ERR     (-520) /* Cannot find CFA Dimension */
 #define CFA_VAR_NOT_FOUND_ERR     (-530) /* Cannot find CFA Variable */
+#define CFA_VAR_FRAGS_DEF         (-531) /* Fragments already defined */
+#define CFA_VAR_FRAGS_UNDEF       (-532) /* Fragments not defined yet */
+#define CFA_VAR_FRAG_DIM_NOT_FOUND (-533) /* Fragment dimension not found */
 #define CFA_UNKNOWN_FILE_FORMAT   (-540) /* Unsupported CFA file format */
 #define CFA_NOT_CFA_FILE          (-541) /* Not a CFA file - does not contain */
                                          /* relevant metadata */
@@ -40,6 +43,10 @@ the file */
                                          /* "aggregated_data" attribute */
 #define CFA_AGG_DIM_ERR           (-544) /* Something went wrong parsing the */
                                          /* "aggregated_dimensions" attribute */
+#define CFA_AGG_NOT_DEFINED       (-555) /* aggregation instructions have not */
+                                         /* been defined */
+#define CFA_AGG_NOT_RECOGNISED    (-556) /* unrecognised aggregation instruction
+                                         */
 /* CFA metadata identifier string */
 #define CFA_CONVENTION ("CFA-")
 #define CFA_VERSION    ("0.6")
@@ -61,8 +68,9 @@ typedef struct {
 typedef struct {
     char *name;
     int length;
-    /* which AggregatedDimension is this a subdomain of? */
-    struct AggregatedDimension* cfa_dimp;
+    /* which AggregatedDimension is this a subdomain of? This is the ID in the
+    DynamicArray */
+    int cfa_dim_id;
 } FragmentDimension;
 
 /* Fragment */
@@ -72,16 +80,17 @@ typedef struct {
     char *format;
     char *address;
     char *units;
-    /* <FragmentDimension> */
-    DynamicArray *cfa_frag_dimsp;
-    DataType* cfa_dtype;
+    /* Datatype of Fragment - inherited from Variable */
+    DataType *cfa_dtype;
 } Fragment;
 
 /* AggregationInstructions */
 typedef struct {
     char *location;
+    int location_scaler;
     char *file;
     char *format;
+    int format_scaler;
     char *address;
 } AggregationInstructions;
 
@@ -96,7 +105,6 @@ typedef struct {
     char *name;
     int len;
     DataType cfa_dtype;
-    FragmentDimension *cfa_frag_dimp;
 } AggregatedDimension;
 
 /* AggregationVariable */
@@ -105,6 +113,8 @@ typedef struct {
     /* dim ids <int> */
     int cfa_ndim;
     int *cfa_dim_idp;
+    /* fragment dimension ids */
+    int *cfa_frag_dim_idp;
     DataType cfa_dtype;
     AggregatedData *cfa_datap;
     AggregationInstructions *cfa_instructionsp;
@@ -203,13 +213,10 @@ extern int cfa_var_def_dims(const int cfa_id, const int cfa_var_id,
                             const int ndims, const int *cfa_dim_idsp);
 
 /* add the AggregationInstructions from a string 
-   the string follows the key: value pair format
-   keys are: location:, address:, file:, format: (including the colon)
-   multiple key: value pairs can be separated by a space
-*/
+   location or format may be scaler */
 extern int cfa_var_def_agg_instr(const int cfa_id, const int cfa_var_id,
-                                 const char *agg_instr_key, 
-                                 const char *agg_instr_val);
+                                 const char* instruction,
+                                 const char* value, const int scalar_location);
 
 /* get the identifier of an AggregationVariable by name */
 extern int cfa_inq_var_id(const int cfa_id, const char *name, 
@@ -226,10 +233,17 @@ extern int cfa_get_var(const int cfa_id, const int cfa_var_id,
                        AggregationVariable **agg_var);
 
 /* add the fragment definitions.  There should be one number per dimension in
-the fragments array.  This defines how many times that dimension is 
-subdivided */
-extern int cfa_var_def_frag(const int cfa_id, const int cfa_var_id,
-                            const int *fragments);
+the fragments array.  This defines how many times that dimension is subdivided
+*/
+extern int cfa_var_def_frag_size(const int cfa_id, const int cfa_var_id,
+                                 const int *fragments);
+/* get a FragmentDimension */
+extern int cfa_var_get_frag_dim(const int cfa_id, const int cfa_var_id,
+                                const int dimn, FragmentDimension **frag_dim);
+
+/* write a Fragment for a variable */
+extern int cfa_var_put1_frag(const int cfa_id, const int cfa_var_id,
+                             const int *fraglocp, Fragment *frag);
 
 /* info / output command - output the structure of a container, including the
 dimensions, variables and any sub-containers
@@ -237,7 +251,7 @@ dimensions, variables and any sub-containers
 */
 extern int cfa_info(const int cfa_id, const int level);
 
-#define CFA_ERR(cfa_err) if(cfa_err) {printf("CFA error: %i\n", cfa_err); return cfa_err;}
+#define CFA_ERR(cfa_err) if(cfa_err) {if (cfa_err > -500) printf("NC error: %i\n", cfa_err); else printf("CFA error %i\n", cfa_err); return cfa_err;}
 #define CFA_CHECK(cfa_err) if(cfa_err) {return cfa_err;}
 
 #endif

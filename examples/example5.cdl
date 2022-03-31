@@ -42,7 +42,7 @@ netcdf {
       time:aggregated_dimensions = "time" ;
       time:aggregated_data = "location: /aggregation_time/location
                               file: /aggregation_time/file
-                              format: agregation_format
+                              format: aggregation_format
                               address: /aggregation_time/address" ;
     double level(level) ;
       level:standard_name = "height_above_mean_sea_level" ;

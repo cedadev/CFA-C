@@ -42,11 +42,12 @@ cfa_def_cont(const int cfa_id, const char* name, int *cfa_cont_idp)
     /* get the identifier as the last node of the container array */
     int cfa_ncont = 0;
     cfa_err = get_array_length(&cfa_conts, &cfa_ncont);
+    printf("%i\n", cfa_ncont);
     CFA_CHECK(cfa_err);
-    *cfa_cont_idp = cfa_ncont - 1;
+    *cfa_cont_idp = cfa_ncont-1;
 
     /* also assign to the parent container */
-    agg_cont->cfa_contids[agg_cont->n_conts++] = *cfa_cont_idp;
+    agg_cont->cfa_contids[agg_cont->n_conts++] = cfa_ncont-1;
 
     return CFA_NOERR;
 }
@@ -106,7 +107,6 @@ cfa_inq_cont_ids(const int cfa_id, int **contids)
     AggregationContainer *agg_cont = NULL;
     int cfa_err = cfa_get(cfa_id, &agg_cont);
     CFA_CHECK(cfa_err);
-
     *contids = agg_cont->cfa_contids;
     return CFA_NOERR;
 }
@@ -128,6 +128,7 @@ and AggregatedDimensions they contain
 */
 extern int cfa_free_vars(const int);
 extern int cfa_free_dims(const int);
+
 int
 cfa_free_cont(const int cfa_id)
 {
