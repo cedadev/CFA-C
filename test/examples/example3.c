@@ -69,6 +69,16 @@ example3(void)
     cfa_err = nc_create(output_path, NC_NETCDF4|NC_CLOBBER, &nc_id);
     CFA_ERR(cfa_err);
 
+    /* add the first Fragment */
+    Fragment frag;
+    frag.location = cfa_malloc(sizeof(int)*4);
+    frag.location[1] = 0;
+    frag.location[2] = 0;
+    frag.location[3] = 0;
+
+    cfa_err = cfa_var_put1_frag(cfa_id, cfa_varid, &frag);
+    CFA_ERR(cfa_err);
+
     /* write out the initial structures, variables, etc */
     cfa_err = serialise_cfa_netcdf(nc_id, cfa_id);
     CFA_ERR(cfa_err);
@@ -162,6 +172,8 @@ example3(void)
     /* close the CFA file */
     cfa_err = cfa_close(cfa_id);
     CFA_ERR(cfa_err);
+
+    cfa_free(frag.location, sizeof(int)*4);
 
     /* check for memory leaks */
     cfa_err = cfa_memcheck();

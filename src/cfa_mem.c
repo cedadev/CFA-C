@@ -270,3 +270,13 @@ strdup(const char *s)
     strcpy(r, s);
     return r;
 }
+
+/* function to free a string pointed to by a pointer */
+void __free_str_via_pointer(char** pointer)
+{
+    if (*pointer)
+    {
+        cfa_free(*pointer, strlen(*pointer)+1);
+        *pointer = NULL;
+    }
+}

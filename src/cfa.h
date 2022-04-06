@@ -81,7 +81,7 @@ typedef struct {
     char *address;
     char *units;
     /* Datatype of Fragment - inherited from Variable */
-    DataType *cfa_dtype;
+    DataType cfa_dtype;
 } Fragment;
 
 /* AggregationInstructions */
@@ -241,9 +241,9 @@ extern int cfa_var_def_frag_size(const int cfa_id, const int cfa_var_id,
 extern int cfa_var_get_frag_dim(const int cfa_id, const int cfa_var_id,
                                 const int dimn, FragmentDimension **frag_dim);
 
-/* write a Fragment for a variable */
+/* write a single Fragment for a variable */
 extern int cfa_var_put1_frag(const int cfa_id, const int cfa_var_id,
-                             const int *fraglocp, Fragment *frag);
+                             Fragment *frag);
 
 /* info / output command - output the structure of a container, including the
 dimensions, variables and any sub-containers

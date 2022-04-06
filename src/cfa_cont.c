@@ -9,6 +9,8 @@ AggregationContainers will be added to the existing cfa_conts defined in cfa.c
 */
 extern DynamicArray *cfa_conts;
 
+extern void __free_str_via_pointer(char**);
+
 /* 
 create an AggregationContainer within another AggregationContainer 
 */
@@ -152,16 +154,8 @@ cfa_free_cont(const int cfa_id)
     }
 
     /* free the path and the name */
-    if (agg_cont->path)
-    {
-        cfa_free(agg_cont->path, strlen(agg_cont->path)+1);
-        agg_cont->path = NULL;
-    }
-    if (agg_cont->name)
-    {
-        cfa_free(agg_cont->name, strlen(agg_cont->name)+1);
-        agg_cont->name = NULL;
-    }
+    __free_str_via_pointer(&(agg_cont->path));
+    __free_str_via_pointer(&(agg_cont->name));
     
     /* get the number of none freed array nodes */
     int n_conts = 0;

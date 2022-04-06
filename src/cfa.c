@@ -10,6 +10,8 @@
    These containers can contain CFA Files or Groups */
 DynamicArray *cfa_conts = NULL;
 
+extern void __free_str_via_pointer(char**);
+
 /* 
 create a CFA AggregationContainer and assign it to cfa_idp
 */

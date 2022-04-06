@@ -9,6 +9,8 @@ extern int get_type_size(const cfa_type);
 /* Start of the dimensions resizeable array in memory */
 DynamicArray *cfa_dims = NULL;
 
+extern void __free_str_via_pointer(char**);
+
 /*
 create an AggregatedDimension, attach it to a cfa_id
 */
@@ -191,11 +193,7 @@ cfa_free_dims(const int cfa_id)
                                  agg_cont->cfa_dimids[i], 
                                  (void**)(&agg_dim));
         CFA_CHECK(cfa_err);
-        if (agg_dim->name)
-        {
-            cfa_free(agg_dim->name, strlen(agg_dim->name)+1);
-            agg_dim->name = NULL;
-        }
+        __free_str_via_pointer(&(agg_dim->name));
     }
     /* check whether all cfa_dims are free (name=NULL) and free the DynamicArray
     holding all the AggregatedDimensions if they are */

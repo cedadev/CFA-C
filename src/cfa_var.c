@@ -17,6 +17,8 @@ extern DynamicArray *cfa_dims;
 
 extern int get_type_size(const cfa_type);
 
+extern void __free_str_via_pointer(char**);
+
 /* 
 create a AggregationVariable container, attach it to a AggregationContainer and one or more AggregatedDimension(s) and assign it to a cfa_var_id
 */
@@ -414,7 +416,7 @@ cfa_var_get_frag_dim(const int cfa_id, const int cfa_var_id,
     /* get the variable */
     AggregationVariable *agg_var = NULL;
     int cfa_err = cfa_get_var(cfa_id, cfa_var_id, &agg_var);
-    CFA_ERR(cfa_err);
+    CFA_CHECK(cfa_err);
     /* check FragDim array created */
     if (!(agg_var->cfa_frag_dim_idp))
         return CFA_VAR_FRAGS_UNDEF;
@@ -422,10 +424,74 @@ cfa_var_get_frag_dim(const int cfa_id, const int cfa_var_id,
     if (dimn >= agg_var->cfa_ndim)
         return CFA_VAR_FRAG_DIM_NOT_FOUND;
 
-    /* otherwise get from the agg_var */
+    /* otherwise get from the FragmentDimension from the agg_var */
     cfa_err = get_array_node(&(cfa_frag_dims), 
                              agg_var->cfa_frag_dim_idp[dimn],
                              (void**)(frag_dim));
+    CFA_CHECK(cfa_err);
+    return CFA_NOERR;
+}
+
+/* Calculate the linear location in the Fragment Array of the Fragment indexed
+at fraglocp */
+int
+__multidim_to_linear_index(const AggregationVariable *agg_var, 
+                           const int *fraglocp, int *L)
+{
+    /* location is sum of the product of the index for the dimension and the
+       size of the less varying dimensions. i.e., for a 4 dimensional netCDF
+       style file:
+            L = t * len(z) * len(y) * len(z) +
+                z * len(y) * len(x) + 
+                y * len(x) + 
+                x
+    */
+    int n_dims = agg_var->cfa_ndim;
+    *L = 0;
+    int cfa_err = 0;
+    FragmentDimension *frag_dim;
+
+    for (int v=0; v<n_dims; v++)
+    {
+        int D=1;
+        for (int d=v+1; d<n_dims; d++)
+        {
+            cfa_err = get_array_node(&(cfa_frag_dims), 
+                                    agg_var->cfa_frag_dim_idp[d],
+                                    (void**)(&frag_dim));
+            CFA_CHECK(cfa_err);
+            D *= frag_dim->length;
+        }
+#ifdef _DEBUG
+        /* range check in DEBUG mode */
+        cfa_err = get_array_node(&(cfa_frag_dims), 
+                                agg_var->cfa_frag_dim_idp[v],
+                                (void**)(&frag_dim));
+        CFA_CHECK(cfa_err);
+        if (fraglocp[v] >= frag_dim->length)
+            return CFA_BOUNDS_ERR;
+#endif
+        *L += D * fraglocp[v];
+    }
+    return CFA_NOERR;;
+}
+
+/* write a single Fragment for a variable */
+int 
+cfa_var_put1_frag(const int cfa_id, const int cfa_var_id,
+                  Fragment *frag)
+{
+    /* get the variable */
+    AggregationVariable *agg_var = NULL;
+    int cfa_err = cfa_get_var(cfa_id, cfa_var_id, &agg_var);
+    CFA_CHECK(cfa_err);
+    /* check that the array has been created */
+    if (!(agg_var->cfa_datap->cfa_fragmentsp))
+        return(CFA_VAR_FRAGS_UNDEF);
+    /* check that the location is not out of bounds */
+    int n_dims = agg_var->cfa_ndim;
+    int L = 0;
+    cfa_err = __multidim_to_linear_index(agg_var, frag->location, &L);
     CFA_CHECK(cfa_err);
     return CFA_NOERR;
 }
@@ -441,18 +507,10 @@ _cfa_free_agg_instructions(AggregationVariable *agg_var)
     if (agg_var->cfa_instructionsp)
     {
         /* free the cfa instructions and their strings */
-        if (agg_var->cfa_instructionsp->location)
-            cfa_free(agg_var->cfa_instructionsp->location,
-                        strlen(agg_var->cfa_instructionsp->location)+1);
-        if (agg_var->cfa_instructionsp->address)
-            cfa_free(agg_var->cfa_instructionsp->address,
-                        strlen(agg_var->cfa_instructionsp->address)+1);
-        if (agg_var->cfa_instructionsp->file)
-            cfa_free(agg_var->cfa_instructionsp->file,
-                        strlen(agg_var->cfa_instructionsp->file)+1);
-        if (agg_var->cfa_instructionsp->format)
-            cfa_free(agg_var->cfa_instructionsp->format,
-                        strlen(agg_var->cfa_instructionsp->format)+1);
+        __free_str_via_pointer(&(agg_var->cfa_instructionsp->location));
+        __free_str_via_pointer(&(agg_var->cfa_instructionsp->address));
+        __free_str_via_pointer(&(agg_var->cfa_instructionsp->file));
+        __free_str_via_pointer(&(agg_var->cfa_instructionsp->format));
         cfa_free(agg_var->cfa_instructionsp, 
                     sizeof(AggregationInstructions));
         agg_var->cfa_instructionsp = NULL;
@@ -497,36 +555,11 @@ _cfa_free_fragments(AggregationVariable *agg_var)
                     cfa_free(cfrag->location, sizeof(int) * agg_var->cfa_ndim);
                     cfrag->location = NULL;
                 }
-                /* free file */
-                if (cfrag->file)
-                {
-                    cfa_free(cfrag->file, strlen(cfrag->file)+1);
-                    cfrag->file = NULL;
-                }
-                /* free format */
-                if (cfrag->format)
-                {
-                    cfa_free(cfrag->format, strlen(cfrag->format)+1);
-                    cfrag->format = NULL;
-                }
-                /* free address */
-                if (cfrag->address)
-                {
-                    cfa_free(cfrag->address, strlen(cfrag->address)+1);
-                    cfrag->address = NULL;
-                }
-                /* free units */
-                if (cfrag->units)
-                {
-                    cfa_free(cfrag->units, strlen(cfrag->units)+1);
-                    cfrag->units = NULL;
-                }
-                /* free datatype */
-                if (cfrag->cfa_dtype)
-                {
-                    cfa_free(cfrag->cfa_dtype, sizeof(cfrag->cfa_dtype));
-                    cfrag->cfa_dtype = NULL;
-                }
+                /* free file, format, address and units strings */
+                __free_str_via_pointer(&(cfrag->file));
+                __free_str_via_pointer(&(cfrag->format));
+                __free_str_via_pointer(&(cfrag->address));
+                __free_str_via_pointer(&(cfrag->units));
             }
             /* free the array */
             free_array(&(agg_var->cfa_datap->cfa_fragmentsp));
