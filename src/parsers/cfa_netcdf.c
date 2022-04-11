@@ -9,6 +9,8 @@
 #define MAX_GROUPS 256
 #define STR_LENGTH 256
 
+extern DynamicArray *cfa_frag_dims;
+
 /*
 check this is a CFA-netCDF file
 */
@@ -384,6 +386,27 @@ _serialise_cfa_fraggrp_netcdf(const int nc_id, const char* agg_inst_var,
 }
 
 /*
+get the maximum length of the fragment dimensions
+*/
+int
+_get_max_frag_dim_len(AggregationVariable *agg_varp, int *max_frag_dim_len)
+{
+    *max_frag_dim_len = 0;
+    FragmentDimension *frag_dim = NULL;
+    int cfa_err;
+    for (int d=0; d<agg_varp->cfa_ndim; d++)
+    {
+        cfa_err = get_array_node(&(cfa_frag_dims), 
+                                 agg_varp->cfa_frag_dim_idp[d],
+                                 (void**)(&frag_dim));
+        CFA_CHECK(cfa_err);
+        if (frag_dim->length > *max_frag_dim_len)
+            *max_frag_dim_len = frag_dim->length;
+    }
+    return CFA_NOERR;
+}
+
+/*
 create any aggregation dimensions needed.  The dimensions will be created in
 the group or in the parent group if the create_in_parent flag is set to 1.
 Only one set of dimensions will be created in each group, or in the parent if
@@ -407,10 +430,11 @@ _serialise_cfa_fragdims_netcdf(const int nc_id,
         err = nc_inq_grp_parent(nc_id, &pnc_id);
         CFA_CHECK(err);
     }
-
+    /* define the Dimensions for the file, format and address aggregation 
+       definition variables */
     for (int fd=0; fd<agg_var->cfa_ndim; fd++)
     {
-        FragmentDimension *frag_dim = NULL;
+        FragmentDimension *frag_dim;
         err = cfa_var_get_frag_dim(cfa_id, cfa_varid, fd, &frag_dim);
         CFA_CHECK(err);
         /* check if a dimension with the frag_dim name has been created yet */
@@ -423,6 +447,27 @@ _serialise_cfa_fragdims_netcdf(const int nc_id,
                              &nc_dimid);
             CFA_CHECK(err);
         }
+    }
+    /* define the Dimensions for the location: i and j 
+       i is number of dimensions
+       j is the maximum length of any of the dimensions
+    */
+    int nc_iid = -1;
+    err = nc_inq_dimid(pnc_id, "i", &nc_iid);
+    if (err == NC_EBADDIM)
+    {
+        err = nc_def_dim(pnc_id, "i", agg_var->cfa_ndim, &nc_iid);
+        CFA_CHECK(err);
+    }
+    int nc_jid = -1;
+    err = nc_inq_dimid(pnc_id, "j", &nc_jid);
+    if (err == NC_EBADDIM)
+    {
+        int max_dim_len = 0;
+        err = _get_max_frag_dim_len(agg_var, &max_dim_len);
+        CFA_CHECK(err);
+        err = nc_def_dim(pnc_id, "j", max_dim_len, &nc_jid);
+        CFA_CHECK(err);
     }
     return CFA_NOERR;
 }
@@ -483,7 +528,7 @@ fragment, i.e. for the location, file, format or address
 int
 _serialise_cfa_fragvar_netcdf(const int nc_id, 
                               const int cfa_id, const int cfa_varid, 
-                              const char* agg_inst_var, int *loc_varid)
+                              const char* agg_inst_var, int *frag_varid)
 {
     AggregationVariable *agg_var = NULL;
     int err = cfa_get_var(cfa_id, cfa_varid, &agg_var);
@@ -513,7 +558,25 @@ _serialise_cfa_fragvar_netcdf(const int nc_id,
     if (scaler)
     {
         /* create the variable */
-        err = nc_def_var(nc_id, agg_inst_name, nc_dtype, 0, NULL, loc_varid);
+        err = nc_def_var(nc_id, agg_inst_name, nc_dtype, 0, NULL, frag_varid);
+        CFA_CHECK(err);
+        return CFA_NOERR;
+    }
+    /* Location is different, as it has two scalar dimensions:
+        i = length of the number of dimensions
+        j = always maximum length of a dimension
+    */
+    if (strcmp(agg_inst_name, "location") == 0)
+    {
+        /* check if i and j dimension has been created yet */
+        int nc_loc_dim_ids[2];
+        err = nc_inq_dimid(nc_id, "i", &(nc_loc_dim_ids[0]));
+        CFA_CHECK(err);
+        err = nc_inq_dimid(nc_id, "j", &(nc_loc_dim_ids[1]));
+        CFA_CHECK(err);
+        /* create the location variable */
+        err = nc_def_var(nc_id, "location", nc_dtype, 2, nc_loc_dim_ids,
+                         frag_varid);
         CFA_CHECK(err);
     }
     else
@@ -529,12 +592,13 @@ _serialise_cfa_fragvar_netcdf(const int nc_id,
         }
         /* create the variable */
         err = nc_def_var(nc_id, agg_inst_name, nc_dtype, agg_var->cfa_ndim,
-                        nc_fragdimids, loc_varid);
+                         nc_fragdimids, frag_varid);
         CFA_CHECK(err);
     }
 
     return CFA_NOERR;
 }
+
 /*
 write out the CFA Fragments - these are variables in the netCDF file, that may
 be contained within a group
@@ -593,6 +657,22 @@ _serialise_cfa_fragments_netcdf(const int nc_id,
     err = _serialise_cfa_fragvar_netcdf(add_grpid, cfa_id, cfa_varid, 
                                         agg_inst->address, &add_varid);
     CFA_CHECK(err);
+
+    /* See if any Fragments have been added yet and write them out if they have
+    */
+    int nfrags = 0;
+    err = get_array_length(&(agg_var->cfa_datap->cfa_fragmentsp), &nfrags);
+    CFA_CHECK(err);
+    Fragment *frag;
+    for (int f=0; f<nfrags; f++)
+    {
+        err = get_array_node(&(agg_var->cfa_datap->cfa_fragmentsp),
+                             f, (void**)(&frag));
+        CFA_CHECK(err);
+        if (frag->location)
+            printf("Write a Fragment");
+    }
+
     return CFA_NOERR;
 }
 

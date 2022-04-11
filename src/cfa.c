@@ -35,13 +35,8 @@ cfa_create(const char *path, int *cfa_idp)
     cfa_node->path = strdup(path);
     cfa_node->name = NULL;
 
-    /* set number of vars to 0 */
     cfa_node->n_vars = 0;
-
-    /* set number of dims to 0 */
     cfa_node->n_dims = 0;
-
-    /* set number of containers to 0 */
     cfa_node->n_conts = 0;
 
     /* get the identifier as the last node of the array */
@@ -57,7 +52,6 @@ cfa_create(const char *path, int *cfa_idp)
 load a file from disk.  We may support different formats of CFA-netCDF files in 
 the future, or different file formats to hold the CFA info.
 */
-
 int 
 cfa_load(const char *path, CFAFileFormat format, int *cfa_idp)
 {

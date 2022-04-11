@@ -57,8 +57,8 @@ example3(void)
                                     "/aggregation/address", 0);
     CFA_ERR(cfa_err);
     /* add the fragmentation */
-    const int frags[4] = {2, 1, 1, 1};
-    cfa_err = cfa_var_def_frag_size(cfa_id, cfa_varid, frags);
+    const int frags_nums[4] = {6, 2, 1, 1};
+    cfa_err = cfa_var_def_frag_num(cfa_id, cfa_varid, frags_nums);
     CFA_ERR(cfa_err);
 
     /* output info */
@@ -70,13 +70,13 @@ example3(void)
     CFA_ERR(cfa_err);
 
     /* add the first Fragment */
-    Fragment frag;
-    frag.location = cfa_malloc(sizeof(int)*4);
-    frag.location[1] = 0;
-    frag.location[2] = 0;
-    frag.location[3] = 0;
-
-    cfa_err = cfa_var_put1_frag(cfa_id, cfa_varid, &frag);
+    const int frag_location[4] = {0, 0, 0, 0};
+    const int data_location[8] = {0,2, 0,1, 0,1, 0,1};
+    const char *address = "temp1";
+    cfa_err = cfa_var_put1_frag(cfa_id, cfa_varid, 
+                                frag_location, data_location, 
+                                NULL, NULL, 
+                                address, NULL);
     CFA_ERR(cfa_err);
 
     /* write out the initial structures, variables, etc */
@@ -91,15 +91,15 @@ example3(void)
     CFA_ERR(cfa_err);
 
     /* add the metadata to the temp variable */
-    const char* temp_standard_name = "air_temperature";
+    const char *temp_standard_name = "air_temperature";
     cfa_err = nc_put_att_text(nc_id, nc_varid, "standard_name",
                               strlen(temp_standard_name), temp_standard_name);
     CFA_ERR(cfa_err);
-    const char* temp_units = "K";
+    const char *temp_units = "K";
     cfa_err = nc_put_att_text(nc_id, nc_varid, "units",
                               strlen(temp_units), temp_units);
     CFA_ERR(cfa_err);
-    const char* temp_cell_methods = "time: mean";
+    const char *temp_cell_methods = "time: mean";
     cfa_err = nc_put_att_text(nc_id, nc_varid, "cell_methods",
                               strlen(temp_cell_methods), temp_cell_methods);
     CFA_ERR(cfa_err);
@@ -108,11 +108,11 @@ example3(void)
     int nc_timeid = -1;
     cfa_err = nc_inq_varid(nc_id, "time", &nc_timeid);
     CFA_ERR(cfa_err);
-    const char* time_standard_name = "time";
+    const char *time_standard_name = "time";
     cfa_err = nc_put_att_text(nc_id, nc_timeid, "standard_name",
                               strlen(time_standard_name), time_standard_name);
     CFA_ERR(cfa_err);
-    const char* time_units = "days since 2001-01-01";
+    const char *time_units = "days since 2001-01-01";
     cfa_err = nc_put_att_text(nc_id, nc_timeid, "units",
                               strlen(time_units), time_units);
     CFA_ERR(cfa_err);
@@ -121,11 +121,11 @@ example3(void)
     int nc_lvlid = -1;
     cfa_err = nc_inq_varid(nc_id, "level", &nc_lvlid);
     CFA_ERR(cfa_err);
-    const char* lvl_standard_name = "height_above_mean_sea_level";
+    const char *lvl_standard_name = "height_above_mean_sea_level";
     cfa_err = nc_put_att_text(nc_id, nc_lvlid, "standard_name",
                               strlen(lvl_standard_name), lvl_standard_name);
     CFA_ERR(cfa_err);
-    const char* lvl_units = "m";
+    const char *lvl_units = "m";
     cfa_err = nc_put_att_text(nc_id, nc_lvlid, "units",
                               strlen(lvl_units), lvl_units);
     CFA_ERR(cfa_err);
@@ -134,11 +134,11 @@ example3(void)
     int nc_latid = -1;
     cfa_err = nc_inq_varid(nc_id, "latitude", &nc_latid);
     CFA_ERR(cfa_err);
-    const char* lat_standard_name = "latitude";
+    const char *lat_standard_name = "latitude";
     cfa_err = nc_put_att_text(nc_id, nc_latid, "standard_name",
                               strlen(lat_standard_name), lat_standard_name);
     CFA_ERR(cfa_err);
-    const char* lat_units = "degrees_north";
+    const char *lat_units = "degrees_north";
     cfa_err = nc_put_att_text(nc_id, nc_latid, "units",
                               strlen(lat_units), lat_units);
     CFA_ERR(cfa_err);
@@ -151,13 +151,13 @@ example3(void)
     cfa_err = nc_put_att_text(nc_id, nc_lonid, "standard_name",
                               strlen(lon_standard_name), lon_standard_name);
     CFA_ERR(cfa_err);
-    const char* lon_units = "degrees_east";
+    const char *lon_units = "degrees_east";
     cfa_err = nc_put_att_text(nc_id, nc_lonid, "units",
                               strlen(lon_units), lon_units);
     CFA_ERR(cfa_err);
 
     /* modify the global conventions to add the CF-1.9 convention */
-    char conventions[1024];
+    char conventions[1024] = "";
     cfa_err = nc_get_att_text(nc_id, NC_GLOBAL, CONVENTIONS, conventions);
     CFA_ERR(cfa_err);
     strcat(conventions, " CF-1.9");
@@ -172,8 +172,6 @@ example3(void)
     /* close the CFA file */
     cfa_err = cfa_close(cfa_id);
     CFA_ERR(cfa_err);
-
-    cfa_free(frag.location, sizeof(int)*4);
 
     /* check for memory leaks */
     cfa_err = cfa_memcheck();

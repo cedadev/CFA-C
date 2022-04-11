@@ -67,8 +67,10 @@ cfa_def_var(int cfa_id, const char *name, const cfa_type vtype,
     var_node->cfa_datap = cfa_malloc(sizeof(AggregatedData));
     /* set units and fragments to NULL for now */
     var_node->cfa_datap->units = NULL;
-    /* fragments set in cfa_var_def_frag_size */ 
+    /* fragments set in cfa_var_def_frag_num */ 
     var_node->cfa_datap->cfa_fragmentsp = NULL; 
+    /* locations set in cfa_var_def_frag_num */
+    var_node->cfa_datap->cfa_fragmentsp = NULL;
 
     /* no fragments defined yet */
     var_node->cfa_frag_dim_idp = NULL;
@@ -203,22 +205,15 @@ _create_frag_dim_name(const char* var_name)
     return new_frag_name;
 }
 
-/* add the fragment definitions.  There should be one number per dimension in
-the fragments array.  This defines how many times that dimension is 
-subdivided */
-int 
-cfa_var_def_frag_size(const int cfa_id, const int cfa_var_id, 
-                      const int *fragments)
+/*
+create the Fragment Dimensions based on the fragment definitions
+*/
+
+int _create_fragment_dimensions(int cfa_id, AggregationVariable *agg_varp,
+                                const int *fragments
+)
 {
-    /* get the CFA AggregationVariable */
-    AggregationVariable *agg_varp = NULL;
-    int cfa_err = cfa_get_var(cfa_id, cfa_var_id, &agg_varp);
-    CFA_CHECK(cfa_err);
-
-    /* check if FragmentDimensions already defined */
-    if (agg_varp->cfa_frag_dim_idp)
-        return CFA_VAR_FRAGS_DEF;
-
+    int cfa_err = 0;
     /* create the FragmentDimension DynamicArray if not already created */
     if (!cfa_frag_dims)
     {
@@ -271,12 +266,10 @@ cfa_var_def_frag_size(const int cfa_id, const int cfa_var_id,
     /* create the Fragments DynamicArray if not already created*/
     if (agg_varp->cfa_datap->cfa_fragmentsp)
         return CFA_VAR_FRAGS_DEF;
-
     cfa_err = create_array(&(agg_varp->cfa_datap->cfa_fragmentsp), 
-                           sizeof(Fragment)*n_total_frags);
+                           sizeof(Fragment) * n_total_frags);
 
-    /* set the location to NULL so we can check if the Fragment has been
-    assigned yet */
+    /* create all of the fragment nodes so we can just write to them */
     for (size_t f=0; f<n_total_frags; f++)
     {
         Fragment *cfrag = NULL;
@@ -284,8 +277,30 @@ cfa_var_def_frag_size(const int cfa_id, const int cfa_var_id,
         cfa_err = create_array_node(&(agg_varp->cfa_datap->cfa_fragmentsp),
                                     (void**)(&cfrag));
         CFA_CHECK(cfa_err);
-        cfrag->location = NULL;
     }
+    return CFA_NOERR;
+}
+
+/* 
+add the fragment definitions.  There should be one number per dimension in
+the fragments array.  This defines how many times that dimension is 
+subdivided 
+*/
+int 
+cfa_var_def_frag_num(const int cfa_id, const int cfa_var_id, 
+                     const int *fragments)
+{
+    /* get the CFA AggregationVariable */
+    AggregationVariable *agg_varp = NULL;
+    int cfa_err = cfa_get_var(cfa_id, cfa_var_id, &agg_varp);
+    CFA_CHECK(cfa_err);
+
+    /* check if FragmentDimensions already defined */
+    if (agg_varp->cfa_frag_dim_idp)
+        return CFA_VAR_FRAGS_DEF;
+
+    /* create the fragment dimensions */
+    cfa_err = _create_fragment_dimensions(cfa_id, agg_varp, fragments);
 
     return CFA_NOERR;
 }
@@ -479,7 +494,9 @@ __multidim_to_linear_index(const AggregationVariable *agg_var,
 /* write a single Fragment for a variable */
 int 
 cfa_var_put1_frag(const int cfa_id, const int cfa_var_id,
-                  Fragment *frag)
+                  const int *frag_location, const int *data_location,
+                  const char *file, const char *format, 
+                  const char *address, const char *units)
 {
     /* get the variable */
     AggregationVariable *agg_var = NULL;
@@ -488,11 +505,32 @@ cfa_var_put1_frag(const int cfa_id, const int cfa_var_id,
     /* check that the array has been created */
     if (!(agg_var->cfa_datap->cfa_fragmentsp))
         return(CFA_VAR_FRAGS_UNDEF);
-    /* check that the location is not out of bounds */
-    int n_dims = agg_var->cfa_ndim;
+    /* Calculate the linear position in the array.  This function will check 
+    that the location is not out of bounds if _DEBUG is set*/
     int L = 0;
-    cfa_err = __multidim_to_linear_index(agg_var, frag->location, &L);
+    cfa_err = __multidim_to_linear_index(agg_var, frag_location, &L);
     CFA_CHECK(cfa_err);
+    /* get the fragment at the linear position and write in the details */
+    Fragment *frag;
+    cfa_err = get_array_node(&(agg_var->cfa_datap->cfa_fragmentsp), L,
+                             (void**)(&frag));
+    /* copy the data location - this is a pair of (loc,span) for each Dimension
+    and points into the AggregatedData */
+    if (data_location)
+    {
+        size_t size = sizeof(int)*2*agg_var->cfa_ndim;
+        frag->location = cfa_malloc(size);
+        memcpy(frag->location, data_location, size);
+    }
+    /* check if the values are NULL before copying - NULL means "missing value"
+    */
+    if (file)    frag->file = strdup(file);       else frag->file = NULL;
+    if (format)  frag->format = strdup(format);   else frag->format = NULL;
+    if (address) frag->address = strdup(address); else frag->address = NULL;
+    if (units)   frag->units = strdup(units);     else frag->units = NULL;
+
+    /* copy DataType from parent variable */
+    frag->cfa_dtype = agg_var->cfa_dtype;
     return CFA_NOERR;
 }
 
@@ -546,14 +584,11 @@ _cfa_free_fragments(AggregationVariable *agg_var)
                 cfa_err = get_array_node(&(agg_var->cfa_datap->cfa_fragmentsp),
                                          f, (void**)(&cfrag));
                 CFA_CHECK(cfa_err);
-                /* Fragment is defined if cfrag->location != NULL */
-                /* free location */
-                if (!(cfrag->location))
-                    continue;
-                else
+                /* free location array */
+                if (cfrag->location)
                 {
-                    cfa_free(cfrag->location, sizeof(int) * agg_var->cfa_ndim);
-                    cfrag->location = NULL;
+                    cfa_free(cfrag->location, 
+                             sizeof(int) * agg_var->cfa_ndim * 2);
                 }
                 /* free file, format, address and units strings */
                 __free_str_via_pointer(&(cfrag->file));

@@ -235,15 +235,19 @@ extern int cfa_get_var(const int cfa_id, const int cfa_var_id,
 /* add the fragment definitions.  There should be one number per dimension in
 the fragments array.  This defines how many times that dimension is subdivided
 */
-extern int cfa_var_def_frag_size(const int cfa_id, const int cfa_var_id,
-                                 const int *fragments);
+extern int cfa_var_def_frag_num(const int cfa_id, const int cfa_var_id,
+                                const int *fragments);
+                                
 /* get a FragmentDimension */
 extern int cfa_var_get_frag_dim(const int cfa_id, const int cfa_var_id,
                                 const int dimn, FragmentDimension **frag_dim);
 
-/* write a single Fragment for a variable */
+/* write a single Fragment for a variable, DataType is inherited from parent
+   variable */
 extern int cfa_var_put1_frag(const int cfa_id, const int cfa_var_id,
-                             Fragment *frag);
+                             const int *frag_location, const int *data_location,
+                             const char *file, const char *format, 
+                             const char *address, const char *units);
 
 /* info / output command - output the structure of a container, including the
 dimensions, variables and any sub-containers
