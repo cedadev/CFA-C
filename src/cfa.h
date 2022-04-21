@@ -29,23 +29,26 @@ the file */
 #define CFA_MEM_ERR               (-500) /* Cannot create memory */
 #define CFA_MEM_LEAK              (-501) /* Debugging check for memory leak */
 #define CFA_BOUNDS_ERR            (-502) /* Bounds error in dynamic array */
+#define CFA_EOS                   (-503) /* End of string */
 #define CFA_NOT_FOUND_ERR         (-510) /* Cannot find CFA Container */
 #define CFA_DIM_NOT_FOUND_ERR     (-520) /* Cannot find CFA Dimension */
 #define CFA_VAR_NOT_FOUND_ERR     (-530) /* Cannot find CFA Variable */
 #define CFA_VAR_FRAGS_DEF         (-531) /* Fragments already defined */
 #define CFA_VAR_FRAGS_UNDEF       (-532) /* Fragments not defined yet */
 #define CFA_VAR_FRAG_DIM_NOT_FOUND (-533) /* Fragment dimension not found */
+#define CFA_VAR_NO_FRAG           (-534) /* Fragment not defined */
 #define CFA_UNKNOWN_FILE_FORMAT   (-540) /* Unsupported CFA file format */
 #define CFA_NOT_CFA_FILE          (-541) /* Not a CFA file - does not contain */
                                          /* relevant metadata */
 #define CFA_UNSUPPORTED_VERSION   (-542) /* Unsupported version of CFA-netCDF */
-#define CFA_AGG_DATA_ERR          (-543) /* Something went wrong parsing the */
+#define CFA_NO_FILE               (-543) /* Output / Input file not create */
+#define CFA_AGG_DATA_ERR          (-550) /* Something went wrong parsing the */
                                          /* "aggregated_data" attribute */
-#define CFA_AGG_DIM_ERR           (-544) /* Something went wrong parsing the */
+#define CFA_AGG_DIM_ERR           (-550) /* Something went wrong parsing the */
                                          /* "aggregated_dimensions" attribute */
-#define CFA_AGG_NOT_DEFINED       (-555) /* aggregation instructions have not */
+#define CFA_AGG_NOT_DEFINED       (-551) /* aggregation instructions have not */
                                          /* been defined */
-#define CFA_AGG_NOT_RECOGNISED    (-556) /* unrecognised aggregation instruction
+#define CFA_AGG_NOT_RECOGNISED    (-552) /* unrecognised aggregation instruction
                                          */
 /* CFA metadata identifier string */
 #define CFA_CONVENTION ("CFA-")
@@ -75,7 +78,8 @@ typedef struct {
 
 /* Fragment */
 typedef struct {
-    int  *location;
+    size_t *location;
+    size_t *index;
     char *file;
     char *format;
     char *address;
@@ -120,6 +124,12 @@ typedef struct {
     AggregationInstructions *cfa_instructionsp;
 } AggregationVariable;
 
+/* File formats */
+typedef enum {
+    CFA_UNKNOWN=-1,
+    CFA_NETCDF=0
+} CFAFileFormat;
+
 /* AggregationContainer */
 #define MAX_VARS 256
 #define MAX_DIMS 256
@@ -139,21 +149,26 @@ struct AggregationContainer {
 
     /* file info */
     char* path;
+    CFAFileFormat format;
+    int x_id;           /* external file id (e.g. netCDF id) */
+    int serialised;     /* has the file been serialised yet? */
     /* name (if a group) */
     char* name;
 }; 
 
-/* File formats */
-typedef enum {
-    CFA_UNKNOWN=-1,
-    CFA_NETCDF=0
-} CFAFileFormat;
 
 /* create a AggregationContainer and assign it to cfaid */
-extern int cfa_create(const char *path, int *cfa_idp);
+extern int cfa_create(const char *path, CFAFileFormat format, int *cfa_idp);
 
 /* load a CFA-netCDF file into an AggegrationContainer and assign it a cfaid */
 extern int cfa_load(const char *path, CFAFileFormat format, int *cfa_idp);
+
+/* get the external file id */
+extern int cfa_get_ext_file_id(const int cfa_id, int *x_id);
+
+/* serialise (save) the AggregationContainer into a CFA file.  The format will
+depend on the CFAFileFormat argument passed into the cfa_create method */
+extern int cfa_serialise(const int cfa_id);
 
 /* get the id of a AggregationContainer */
 extern int cfa_inq_id(const char *path, int *cfa_idp);
@@ -245,7 +260,8 @@ extern int cfa_var_get_frag_dim(const int cfa_id, const int cfa_var_id,
 /* write a single Fragment for a variable, DataType is inherited from parent
    variable */
 extern int cfa_var_put1_frag(const int cfa_id, const int cfa_var_id,
-                             const int *frag_location, const int *data_location,
+                             const size_t *frag_location, 
+                             const size_t *data_location,
                              const char *file, const char *format, 
                              const char *address, const char *units);
 

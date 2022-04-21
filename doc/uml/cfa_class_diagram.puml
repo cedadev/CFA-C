@@ -1,35 +1,38 @@
-@startuml
+@startuml CFA-C
 
 class DataType {
     +string type
     +int size
 }
 
+class FragmentDimension {
+    +string name
+    +int length
+}
+
 class Fragment {
     +int [] location
+    -int [] index
     +string file
     +string format
     +string address
     +string units
+}
+
+class AggregationInstructions {
+    +string location
+    -bool location_scaler
+    +string file
+    +string format
+    -bool format_scaler
+    +string address
 }
 
 class AggregatedData {
     +string units
 }
 
-class AggregationInstructions {
-    +string location
-    +string file
-    +string format
-    +string address
-}
-
 class AggregatedDimension {
-    +string name
-    +int length
-}
-
-class FragmentDimension {
     +string name
     +int length
 }
@@ -41,6 +44,9 @@ class AggregationVariable {
 class AggregationContainer {
     +string path
     +string name
+    -string format
+    -string external_id
+    -bool serialised
 }
 
 AggregationVariable "1" o--> "0..*" AggregatedDimension

@@ -4,7 +4,6 @@
 #include <string.h>
 
 #include "cfa.h"
-#include "parsers/cfa_netcdf.h"
 
 const char* output_path = "examples/test/example3.nc";
 
@@ -19,7 +18,7 @@ example3(void)
     int nc_id = -1;
 
     /* create the CFA parent container */
-    cfa_err = cfa_create(output_path, &cfa_id);
+    cfa_err = cfa_create(output_path, CFA_NETCDF, &cfa_id);
     CFA_ERR(cfa_err);
 
     /* define the CFA dimensions */
@@ -57,7 +56,7 @@ example3(void)
                                     "/aggregation/address", 0);
     CFA_ERR(cfa_err);
     /* add the fragmentation */
-    const int frags_nums[4] = {6, 2, 1, 1};
+    const int frags_nums[4] = {2, 1, 1, 1};
     cfa_err = cfa_var_def_frag_num(cfa_id, cfa_varid, frags_nums);
     CFA_ERR(cfa_err);
 
@@ -65,27 +64,33 @@ example3(void)
     cfa_err = cfa_info(cfa_id, 0);
     CFA_ERR(cfa_err);
 
-    /* create the netCDF file to save the CFA info into */
-    cfa_err = nc_create(output_path, NC_NETCDF4|NC_CLOBBER, &nc_id);
-    CFA_ERR(cfa_err);
-
     /* add the first Fragment */
-    const int frag_location[4] = {0, 0, 0, 0};
-    const int data_location[8] = {0,2, 0,1, 0,1, 0,1};
-    const char *address = "temp1";
+    size_t frag_location[4] = {0, 0, 0, 0};
+    size_t data_location[8] = {0,6, 0,1, 0,1, 0,1};
     cfa_err = cfa_var_put1_frag(cfa_id, cfa_varid, 
                                 frag_location, data_location, 
-                                NULL, NULL, 
-                                address, NULL);
+                                NULL, NULL, "temp1", NULL);
     CFA_ERR(cfa_err);
 
     /* write out the initial structures, variables, etc */
-    cfa_err = serialise_cfa_netcdf(nc_id, cfa_id);
+    cfa_err = cfa_serialise(cfa_id);
     CFA_ERR(cfa_err);
 
+    /* add the second Fragment */
+    frag_location[0] = 1;    // iterate to the next Fragment location
+    data_location[0] = 6;    // iterate to the next location in the parent array
+    cfa_err = cfa_var_put1_frag(cfa_id, cfa_varid,
+                                frag_location, data_location,
+                                NULL, NULL, "temp2", NULL);
+    CFA_ERR(cfa_err);
+    
     /* once the CFA structure(s) have been serialised we can add the metadata
     to the netCDF variables that have been created during the serialisation */
-    /* first get the netcdf var id for the temp variable */
+    /* get the netCDF file id from the CFA File Container */
+    cfa_err = cfa_get_ext_file_id(cfa_id, &nc_id);
+    CFA_ERR(cfa_err);
+
+    /* get the netCDF var id for the temp variable */
     int nc_varid = -1;
     cfa_err = nc_inq_varid(nc_id, "temp", &nc_varid);
     CFA_ERR(cfa_err);
@@ -164,6 +169,50 @@ example3(void)
     cfa_err = nc_put_att_text(nc_id, NC_GLOBAL, CONVENTIONS, 
                           strlen(conventions), conventions);
     CFA_ERR(cfa_err);
+
+    /* create the temp1 and temp2 variables inside the aggregation group */
+    int nc_agg_grp = -1;
+    cfa_err = nc_inq_grp_ncid(nc_id, "aggregation", &nc_agg_grp);
+    CFA_ERR(cfa_err);
+    const int temp_dim_ids[3] = {nc_timeid, nc_latid, nc_lonid};
+    int nc_temp1_var = -1;
+    cfa_err = nc_def_var(nc_agg_grp, "temp1", NC_DOUBLE, 
+                         3, temp_dim_ids, &nc_temp1_var);
+    CFA_ERR(cfa_err);
+    /* add metadata */
+    cfa_err = nc_put_att_text(nc_agg_grp, nc_temp1_var, "units",
+                              6, "Kelvin");
+    CFA_ERR(cfa_err);
+    int nc_temp2_var = -1;
+    cfa_err = nc_def_var(nc_agg_grp, "temp2", NC_DOUBLE, 
+                         3, temp_dim_ids, &nc_temp2_var);
+    CFA_ERR(cfa_err);
+    /* add metadata */
+    cfa_err = nc_put_att_text(nc_agg_grp, nc_temp2_var, "units",
+                              8, "degreesC");
+    CFA_ERR(cfa_err);
+
+    /* write the data for the time variable */
+    const size_t start = 0;
+    const size_t span = 12;
+    const int time_vals[12] = 
+        {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334};
+    cfa_err = nc_put_vara_int(nc_id, nc_timeid, &start, &span, time_vals);
+    CFA_CHECK(cfa_err);
+
+    /* write the data for the temp1 and temp2 variables */
+    const double temp1_vals[6] = {270.3, 272.5, 274.1, 278.5, 280.3, 283.6};
+    const size_t temp_start[3] = {0, 0, 0};
+    const size_t temp_span[3] = {1, 1, 6};
+    cfa_err = nc_put_vara_double(nc_agg_grp, nc_temp1_var, 
+                                 temp_start, temp_span,
+                                 temp1_vals);
+    CFA_CHECK(cfa_err);
+    const double temp2_vals[6] = {4.5, 3.0, 0.0, -2.6, -5.6, -10.2};
+    cfa_err = nc_put_vara_double(nc_agg_grp, nc_temp2_var,
+                                 temp_start, temp_span, 
+                                 temp2_vals);
+    CFA_CHECK(cfa_err);
 
     /*  close the netCDF file */
     cfa_err = nc_close(nc_id);

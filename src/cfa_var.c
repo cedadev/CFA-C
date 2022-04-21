@@ -451,7 +451,7 @@ cfa_var_get_frag_dim(const int cfa_id, const int cfa_var_id,
 at fraglocp */
 int
 __multidim_to_linear_index(const AggregationVariable *agg_var, 
-                           const int *fraglocp, int *L)
+                           const size_t *fraglocp, int *L)
 {
     /* location is sum of the product of the index for the dimension and the
        size of the less varying dimensions. i.e., for a 4 dimensional netCDF
@@ -483,7 +483,7 @@ __multidim_to_linear_index(const AggregationVariable *agg_var,
                                 agg_var->cfa_frag_dim_idp[v],
                                 (void**)(&frag_dim));
         CFA_CHECK(cfa_err);
-        if (fraglocp[v] >= frag_dim->length)
+        if (fraglocp[v] >= (size_t)(frag_dim->length))
             return CFA_BOUNDS_ERR;
 #endif
         *L += D * fraglocp[v];
@@ -492,9 +492,13 @@ __multidim_to_linear_index(const AggregationVariable *agg_var,
 }
 
 /* write a single Fragment for a variable */
+/* external writing functions */
+extern int cfa_netcdf_write1_frag(const int, const int, const int, 
+                                  const Fragment*);
+
 int 
 cfa_var_put1_frag(const int cfa_id, const int cfa_var_id,
-                  const int *frag_location, const int *data_location,
+                  const size_t *frag_location, const size_t *data_location,
                   const char *file, const char *format, 
                   const char *address, const char *units)
 {
@@ -518,9 +522,18 @@ cfa_var_put1_frag(const int cfa_id, const int cfa_var_id,
     and points into the AggregatedData */
     if (data_location)
     {
-        size_t size = sizeof(int)*2*agg_var->cfa_ndim;
+        size_t size = sizeof(size_t) * 2 * agg_var->cfa_ndim;
         frag->location = cfa_malloc(size);
         memcpy(frag->location, data_location, size);
+    }
+    /* copy the frag location - this is a single index into each 
+    FragmentDimension */
+    if (frag_location)
+    {
+        size_t size = sizeof(size_t) * agg_var->cfa_ndim;
+        frag->index = cfa_malloc(size);
+        memcpy(frag->index, frag_location, size);
+
     }
     /* check if the values are NULL before copying - NULL means "missing value"
     */
@@ -531,6 +544,29 @@ cfa_var_put1_frag(const int cfa_id, const int cfa_var_id,
 
     /* copy DataType from parent variable */
     frag->cfa_dtype = agg_var->cfa_dtype;
+
+    /* is the data serialised?  if it is then we can write out the fragment */
+    AggregationContainer *agg_cont = NULL;
+    cfa_err = cfa_get(cfa_id, &agg_cont);
+    CFA_CHECK(cfa_err);
+    if (agg_cont->serialised)
+    {
+        switch (agg_cont->format)
+        {
+            case CFA_UNKNOWN:
+                return CFA_UNKNOWN_FILE_FORMAT;
+            break;
+            case CFA_NETCDF:
+                cfa_err = cfa_netcdf_write1_frag(agg_cont->x_id, cfa_id, 
+                                                 cfa_var_id, frag);
+                CFA_CHECK(cfa_err);
+                agg_cont->serialised = 1;
+            break;
+            default:
+                return CFA_UNKNOWN_FILE_FORMAT;
+        }
+    }
+
     return CFA_NOERR;
 }
 
@@ -588,7 +624,13 @@ _cfa_free_fragments(AggregationVariable *agg_var)
                 if (cfrag->location)
                 {
                     cfa_free(cfrag->location, 
-                             sizeof(int) * agg_var->cfa_ndim * 2);
+                             sizeof(size_t) * agg_var->cfa_ndim * 2);
+                }
+                /* free index array */
+                if (cfrag->index)
+                {
+                    cfa_free(cfrag->index,
+                             sizeof(size_t) * agg_var->cfa_ndim);
                 }
                 /* free file, format, address and units strings */
                 __free_str_via_pointer(&(cfrag->file));

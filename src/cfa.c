@@ -16,7 +16,7 @@ extern void __free_str_via_pointer(char**);
 create a CFA AggregationContainer and assign it to cfa_idp
 */
 int
-cfa_create(const char *path, int *cfa_idp)
+cfa_create(const char *path, CFAFileFormat format, int *cfa_idp)
 {
     /* create the array if not already created */
     int cfa_err;
@@ -45,6 +45,19 @@ cfa_create(const char *path, int *cfa_idp)
     CFA_CHECK(cfa_err);
     *cfa_idp = cfa_ncont - 1;
 
+    /* create the file */
+    cfa_node->x_id = -1;
+    cfa_node->format = format;
+    switch (format)
+    {
+        case CFA_NETCDF:
+            cfa_err = create_cfa_netcdf_file(path, &(cfa_node->x_id));
+            CFA_CHECK(cfa_err);
+            break;
+        default:
+            return CFA_UNKNOWN_FILE_FORMAT;
+    }
+
     return CFA_NOERR;
 }
 
@@ -62,7 +75,7 @@ cfa_load(const char *path, CFAFileFormat format, int *cfa_idp)
             return CFA_UNKNOWN_FILE_FORMAT;
         break;
         case CFA_NETCDF:
-            cfa_err = parse_netcdf_cfa_file(path, cfa_idp);
+            cfa_err = parse_cfa_netcdf_file(path, cfa_idp);
             CFA_CHECK(cfa_err);
         break;
         default:
@@ -71,6 +84,43 @@ cfa_load(const char *path, CFAFileFormat format, int *cfa_idp)
     return cfa_err;
 }
 
+/*
+get the external file id for a CFA file container
+*/
+int
+cfa_get_ext_file_id(const int cfa_id, int *x_id)
+{
+    AggregationContainer *agg_cont;
+    int err = cfa_get(cfa_id, &agg_cont);
+    CFA_CHECK(err);
+    *x_id = agg_cont->x_id;
+    return CFA_NOERR;
+}
+
+/*
+serialise the CFA file
+*/
+int
+cfa_serialise(const int cfa_id)
+{
+    AggregationContainer *agg_cont;
+    int cfa_err = cfa_get(cfa_id, &agg_cont);
+    CFA_CHECK(cfa_err);
+    switch (agg_cont->format)
+    {
+        case CFA_UNKNOWN:
+            return CFA_UNKNOWN_FILE_FORMAT;
+        break;
+        case CFA_NETCDF:
+            cfa_err = serialise_cfa_netcdf_file(cfa_id);
+            CFA_CHECK(cfa_err);
+            agg_cont->serialised = 1;
+        break;
+        default:
+            return CFA_UNKNOWN_FILE_FORMAT;
+    }
+    return CFA_NOERR;
+}
 
 /*
 get the identifier of a CFA AggregationContainer by the path name

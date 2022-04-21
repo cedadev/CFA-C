@@ -107,6 +107,18 @@
             "preLaunchTask": "build_example1"
         },
         {
+            "name": "example2",
+            "program": "${workspaceRoot}/build/examples/example2",
+            "type": "cppdbg",
+            "request": "launch",
+            "cwd": "${workspaceRoot}",
+            "targetArchitecture": "x64",
+            "osx": {
+                "MIMode": "lldb"
+            },  
+            "preLaunchTask": "build_example2"
+        },
+        {
             "name": "example3",
             "program": "${workspaceRoot}/build/examples/example3",
             "type": "cppdbg",

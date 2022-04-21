@@ -276,7 +276,7 @@ parse_netcdf_cfa_container(int ncid, int cfa_id)
 load and parse a CFA-netCDF file
 */
 int 
-parse_netcdf_cfa_file(const char *path, int *cfa_idp)
+parse_cfa_netcdf_file(const char *path, int *cfa_idp)
 {
     /* open the file first, using the netCDF library, in read only mode */
     int ncid = -1;
@@ -287,7 +287,7 @@ parse_netcdf_cfa_file(const char *path, int *cfa_idp)
     CFA_CHECK(err);
 
     /* create the netCDF-CFA container */
-    err = cfa_create(path, cfa_idp);
+    err = cfa_create(path, CFA_NETCDF, cfa_idp);
     CFA_CHECK(err);
 
     /* enter the recursive parser with the root group / container */
@@ -305,8 +305,8 @@ parse_netcdf_cfa_file(const char *path, int *cfa_idp)
 write a CFA AggregatedDimension out as a netCDF dimension and variable
 */
 int
-serialise_cfa_dimension_netcdf(const int nc_id,
-                               const int cfa_id, const int cfa_dimid)
+_serialise_cfa_dimension_netcdf(const int nc_id,
+                                const int cfa_id, const int cfa_dimid)
 {
     /* get the AggregatedDimension */
     AggregatedDimension *agg_dim = NULL;
@@ -328,34 +328,66 @@ serialise_cfa_dimension_netcdf(const int nc_id,
     return CFA_NOERR;
 }
 
+
 /*
-create any aggregation groups needed.  This has to be able to create any 
-subgroups in the string, for example:
-/aggregation/location
-/aggregation/local/location
-/group1/group2/group3/aggregation/location
+get a group name from a string
 */
 int
-_serialise_cfa_fraggrp_netcdf(const int nc_id, const char* agg_inst_var,
-                              int *ret_grp_id)
+_get_grp_name_from_str(const char *in_str, char *out_grp_name)
 {
-    /* copy the string before strtok it */
-    char var_str[STR_LENGTH];
-    strcpy(var_str, agg_inst_var);
-    /* tokenise the string searching for the / character */
-    char *strp = strtok(var_str, "/");
-    /* process the split string into subsequent group names and create the
-       group if it doesn't already exist */
-    char grpname[STR_LENGTH];
-    /* keep track of the parent group  - it starts with the nc_id */
-    int pgrp_id = nc_id;
-    while(strp != NULL)
+    char str[STR_LENGTH];
+    strcpy(str, in_str);
+    char *strp = strtok(str, "/");
+    if (strp != NULL)
     {
-        strcpy(grpname, strp);
+        strcpy(out_grp_name, strp);
+        /* needs another / to still be a group, rather than a variable */
+        if (strtok(NULL, "/") != NULL)
+            return CFA_NOERR;
+    }
+    return CFA_EOS;
+}
+
+/*
+get a variable name from a string
+*/
+int
+_get_var_name_from_str(const char *in_str, char *out_var_name)
+{
+    char str[STR_LENGTH];
+    strcpy(str, in_str);
+    char *strp = strtok(str, "/");
+    while (strp != NULL)
+    {
+        strcpy(out_var_name, strp);
         strp = strtok(NULL, "/");
+    }
+    return CFA_NOERR;
+}
+
+/*
+get a netcdf group id from a string
+*/
+int
+_get_nc_grp_id_from_str(const int nc_id, const char *in_str, const int create,
+                        int *ret_grp_id)
+{
+    /* get the group id in a netCDF from a variable string that may contain
+    various groups, e.g. /group1/group2/var1
+    */
+    char grpname[STR_LENGTH];
+    int orig_str_len = strlen(in_str);
+    int strpos = 0;
+    int pgrp_id = nc_id;
+    int cfa_err = CFA_NOERR;
+
+    while(strpos < orig_str_len)
+    {
+        /* get the first group name */
+        cfa_err = _get_grp_name_from_str(in_str + strpos, grpname);
         /* if the token has been found then use the preceeding characters to
-           create the group - check if it exists first */
-        if(strp != NULL)
+        create the group - check if it exists first */
+        if(cfa_err != CFA_EOS)
         {
             int grp_id = -1;
             int grp_err = nc_inq_grp_ncid(pgrp_id, grpname, &grp_id);
@@ -367,22 +399,57 @@ _serialise_cfa_fraggrp_netcdf(const int nc_id, const char* agg_inst_var,
             }
             else
             {
-                /* if the error is no group found then create it */
-                if (grp_err == NC_ENOGRP)
+                /* if the error is no group found then create it if requested */
+                if (grp_err == NC_ENOGRP && create)
                 {
                     grp_err = nc_def_grp(pgrp_id, grpname, &grp_id);
                     CFA_CHECK(grp_err);
                     /* any subsequent groups will be created as children of 
-                       this group */
+                    this group */
                     pgrp_id = grp_id;
                 }
             }
         }
+        strpos += strlen(grpname) + 1;
     }
     /* assign the return group id to the parent group (which is the same as the
     grp_id at this point) */
     *ret_grp_id = pgrp_id;
     return CFA_NOERR;
+}
+
+int
+_get_nc_grp_var_ids_from_str(const int nc_id, const char *in_str,
+                             int *ret_grp_id, int *ret_var_id)
+{
+    /* get the netCDF ids of a group and a variable from a string that has
+    groups and variables compounded in it, e.g.:
+    /group1/group2/variable */
+    /* get the group id from the function above, do not create the group */
+    int cfa_err = _get_nc_grp_id_from_str(nc_id, in_str, 0, ret_grp_id);
+    CFA_CHECK(cfa_err);
+    /* get the varname */
+    char var_name[STR_LENGTH];
+    cfa_err = _get_var_name_from_str(in_str, var_name);
+    CFA_CHECK(cfa_err);
+    /* get the netCDF var id */
+    cfa_err = nc_inq_varid(*ret_grp_id, var_name, ret_var_id);
+    CFA_CHECK(cfa_err);
+    return CFA_NOERR;
+}
+
+/*
+create any aggregation groups needed.  This has to be able to create any 
+subgroups in the string, for example:
+/aggregation/location
+/aggregation/local/location
+/group1/group2/group3/aggregation/location
+*/
+int
+_serialise_cfa_fraggrp_netcdf(const int nc_id, const char* agg_inst_var,
+                              int *ret_grp_id)
+{
+    return _get_nc_grp_id_from_str(nc_id, agg_inst_var, 1, ret_grp_id);
 }
 
 /*
@@ -472,26 +539,6 @@ _serialise_cfa_fragdims_netcdf(const int nc_id,
     return CFA_NOERR;
 }
 
-/* 
-given an aggregation instruction with the group in it 
-(e.g. /aggregation/location), return just the variable name (e.g. location)
-*/
-int
-_get_agg_inst_name(const char* agg_inst_var, char* inst_name)
-{
-    /* copy the string before strtok it */
-    char var_str[STR_LENGTH];
-    strcpy(var_str, agg_inst_var);
-    /* tokenise the string searching for the / character */
-    char *strp = strtok(var_str, "/");    
-    while(strp != NULL)
-    {
-        strcpy(inst_name, strp);
-        strp = strtok(NULL, "/");
-    }
-    return CFA_NOERR;
-}
-
 /*
 get the type of the Aggregation Instruction variable
 */
@@ -528,7 +575,9 @@ fragment, i.e. for the location, file, format or address
 int
 _serialise_cfa_fragvar_netcdf(const int nc_id, 
                               const int cfa_id, const int cfa_varid, 
-                              const char* agg_inst_var, int *frag_varid)
+                              const char *agg_inst_name, 
+                              const char *agg_inst_var, 
+                              int *frag_varid)
 {
     AggregationVariable *agg_var = NULL;
     int err = cfa_get_var(cfa_id, cfa_varid, &agg_var);
@@ -540,9 +589,6 @@ _serialise_cfa_fragvar_netcdf(const int nc_id,
 
     nc_type nc_dtype = -1;
     /* get the fragment variable name, without the group prefix */
-    char agg_inst_name[STR_LENGTH];
-    err = _get_agg_inst_name(agg_inst_var, agg_inst_name);
-    CFA_CHECK(err);
     err = _get_agg_inst_type(agg_inst_name, &nc_dtype);
     CFA_CHECK(err);
 
@@ -555,10 +601,15 @@ _serialise_cfa_fragvar_netcdf(const int nc_id,
         agg_var->cfa_instructionsp->location_scaler != 0)
         scaler = 1;
 
+    /* get the actual name of the variable, outside of the group */
+    char agg_var_name[STR_LENGTH];
+    err = _get_var_name_from_str(agg_inst_var, agg_var_name);
+    CFA_CHECK(err);
+
     if (scaler)
     {
         /* create the variable */
-        err = nc_def_var(nc_id, agg_inst_name, nc_dtype, 0, NULL, frag_varid);
+        err = nc_def_var(nc_id, agg_var_name, nc_dtype, 0, NULL, frag_varid);
         CFA_CHECK(err);
         return CFA_NOERR;
     }
@@ -575,7 +626,7 @@ _serialise_cfa_fragvar_netcdf(const int nc_id,
         err = nc_inq_dimid(nc_id, "j", &(nc_loc_dim_ids[1]));
         CFA_CHECK(err);
         /* create the location variable */
-        err = nc_def_var(nc_id, "location", nc_dtype, 2, nc_loc_dim_ids,
+        err = nc_def_var(nc_id, agg_var_name, nc_dtype, 2, nc_loc_dim_ids,
                          frag_varid);
         CFA_CHECK(err);
     }
@@ -591,11 +642,94 @@ _serialise_cfa_fragvar_netcdf(const int nc_id,
             CFA_CHECK(err);
         }
         /* create the variable */
-        err = nc_def_var(nc_id, agg_inst_name, nc_dtype, agg_var->cfa_ndim,
+        err = nc_def_var(nc_id, agg_var_name, nc_dtype, agg_var->cfa_ndim,
                          nc_fragdimids, frag_varid);
         CFA_CHECK(err);
     }
 
+    return CFA_NOERR;
+}
+
+/*
+write out a single fragment - this can be called from either 
+_serialise_cfa_fragments_netcdf below, as part of the serialisation, or
+cfa_var_put1_frag if the serialisation has already taken place
+*/
+int
+cfa_netcdf_write1_frag(const int nc_id, 
+                       const int cfa_id, const int cfa_varid,
+                       const Fragment *frag)
+{
+    /* check whether the input Fragment is defined */
+    if (!(frag->location))
+        return CFA_VAR_NO_FRAG;
+
+    /* get the cfa variable */
+    AggregationVariable *agg_var;
+    int cfa_err = cfa_get_var(cfa_id, cfa_varid, &agg_var);
+    CFA_ERR(cfa_err);
+
+    int grp_id = -1;
+    int var_id = -1;
+
+    /* write out one element in the location variable */
+    if (frag->location)
+    {
+        cfa_err = _get_nc_grp_var_ids_from_str(
+            nc_id, 
+            agg_var->cfa_instructionsp->location,
+            &grp_id, &var_id
+        );
+        CFA_CHECK(cfa_err);        
+    }
+
+    /* write out one element in the file variable */
+    /* get the netCDF group and variable id from the long name with groups
+    compounded in it */
+    if (frag->file)
+    {
+        cfa_err = _get_nc_grp_var_ids_from_str(
+            nc_id, 
+            agg_var->cfa_instructionsp->file,
+            &grp_id, &var_id
+        );
+        CFA_CHECK(cfa_err);
+        cfa_err = nc_put_var1_string(grp_id, var_id, frag->index,
+                                     (const char**)(&(frag->file)));
+        CFA_CHECK(cfa_err);
+    }
+
+    /* write out one element in the format variable */
+    if (frag->format)
+    {
+        cfa_err = _get_nc_grp_var_ids_from_str(
+            nc_id, 
+            agg_var->cfa_instructionsp->format,
+            &grp_id, &var_id
+        );
+        CFA_CHECK(cfa_err);
+        /* format can be a scalar */
+        if (agg_var->cfa_instructionsp->format_scaler)
+            cfa_err = nc_put_var1_string(grp_id, var_id, frag->index,
+                                         (const char**)(&(frag->format)));
+        else
+            cfa_err = nc_put_var1_string(grp_id, var_id, frag->index,
+                                         (const char**)(&(frag->format)));
+        CFA_CHECK(cfa_err);
+    }
+
+    /* write out one element in the address variable */
+    if (frag->address)
+    {
+        cfa_err = _get_nc_grp_var_ids_from_str(nc_id, 
+                    agg_var->cfa_instructionsp->address,
+                    &grp_id, &var_id);
+        CFA_CHECK(cfa_err);
+        /* write out the data from the fragment */
+        cfa_err = nc_put_var1_string(grp_id, var_id, frag->index, 
+                                     (const char**)(&(frag->address)));
+        CFA_CHECK(cfa_err);        
+    }
     return CFA_NOERR;
 }
 
@@ -622,6 +756,7 @@ _serialise_cfa_fragments_netcdf(const int nc_id,
     CFA_CHECK(err);
     int loc_varid = -1;
     err = _serialise_cfa_fragvar_netcdf(loc_grpid, cfa_id, cfa_varid, 
+                                        "location",
                                         agg_inst->location, &loc_varid);
     CFA_CHECK(err);
 
@@ -633,6 +768,7 @@ _serialise_cfa_fragments_netcdf(const int nc_id,
     CFA_CHECK(err);
     int file_varid = -1;
     err = _serialise_cfa_fragvar_netcdf(file_grpid, cfa_id, cfa_varid, 
+                                        "file",
                                         agg_inst->file, &file_varid);
     CFA_CHECK(err);
 
@@ -644,6 +780,7 @@ _serialise_cfa_fragments_netcdf(const int nc_id,
     CFA_CHECK(err);
     int format_varid = -1;
     err = _serialise_cfa_fragvar_netcdf(fmt_grpid, cfa_id, cfa_varid, 
+                                        "format",
                                         agg_inst->format, &format_varid);
     CFA_CHECK(err);
 
@@ -655,6 +792,7 @@ _serialise_cfa_fragments_netcdf(const int nc_id,
     CFA_CHECK(err);
     int add_varid = -1;
     err = _serialise_cfa_fragvar_netcdf(add_grpid, cfa_id, cfa_varid, 
+                                        "address",
                                         agg_inst->address, &add_varid);
     CFA_CHECK(err);
 
@@ -670,7 +808,10 @@ _serialise_cfa_fragments_netcdf(const int nc_id,
                              f, (void**)(&frag));
         CFA_CHECK(err);
         if (frag->location)
-            printf("Write a Fragment");
+        {
+            err = cfa_netcdf_write1_frag(nc_id, cfa_id, cfa_varid, frag);
+            CFA_CHECK(err);
+        }
     }
 
     return CFA_NOERR;
@@ -749,7 +890,7 @@ _serialise_cfa_aggregation_instructions(int nc_id, int nc_varid,
 write a CFA AggregationVariables out as a netCDF variable
 */
 int
-serialise_cfa_variable_netcdf(const int nc_id, 
+_serialise_cfa_variable_netcdf(const int nc_id, 
                               const int cfa_id, const int cfa_varid)
 {
     /* get the AggregationVariable */
@@ -777,7 +918,7 @@ serialise_cfa_variable_netcdf(const int nc_id,
 write a CFA container out as a netCDF group
 */
 int
-serialise_cfa_container_netcdf(const int nc_id, const int cfa_id)
+_serialise_cfa_container_netcdf(const int nc_id, const int cfa_id)
 {
     /* serialise the containers */
     int nconts = 0;
@@ -800,7 +941,7 @@ serialise_cfa_container_netcdf(const int nc_id, const int cfa_id)
         int nc_grpid = -1;
         err = nc_def_grp(nc_id, agg_cont->name, &nc_grpid);
         /* recursively serialise the container */
-        serialise_cfa_container_netcdf(nc_grpid, cont_ids[g]);
+        _serialise_cfa_container_netcdf(nc_grpid, cont_ids[g]);
     }
     /* get the parent container */
     err = cfa_get(cfa_id, &agg_cont);
@@ -808,7 +949,7 @@ serialise_cfa_container_netcdf(const int nc_id, const int cfa_id)
     /* serialise the dimensions in this container */
     for (int d=0; d<agg_cont->n_dims; d++)
     {
-        err = serialise_cfa_dimension_netcdf(nc_id, cfa_id, 
+        err = _serialise_cfa_dimension_netcdf(nc_id, cfa_id, 
                                              agg_cont->cfa_dimids[d]);
         CFA_CHECK(err);
     }
@@ -816,7 +957,7 @@ serialise_cfa_container_netcdf(const int nc_id, const int cfa_id)
     /* serialise the variables in this container */
     for (int v=0; v<agg_cont->n_vars; v++)
     {
-        err = serialise_cfa_variable_netcdf(nc_id, cfa_id, 
+        err = _serialise_cfa_variable_netcdf(nc_id, cfa_id, 
                                             agg_cont->cfa_varids[v]);
         CFA_CHECK(err);
     }
@@ -825,13 +966,33 @@ serialise_cfa_container_netcdf(const int nc_id, const int cfa_id)
 }
 
 /*
+create the netCDF file 
+*/
+int 
+create_cfa_netcdf_file(const char *path, int *ncidp)
+{
+    /* create the netCDF file to save the CFA info into */
+    int cfa_err = nc_create(path, NC_NETCDF4|NC_CLOBBER, ncidp);
+    CFA_ERR(cfa_err);
+    return CFA_NOERR;
+}
+
+/*
 write cfa structures into existing netCDF file
 */
 int
-serialise_cfa_netcdf(const int nc_id, const int cfa_id)
+serialise_cfa_netcdf_file(const int cfa_id)
 {
+    /* get the container to get the external id (x_id) */
+    AggregationContainer *agg_cont = NULL;
+    int err = cfa_get(cfa_id, &agg_cont);
+    CFA_CHECK(err);
+    /* check the file has been created */
+    if (agg_cont->x_id == -1)
+        return CFA_NO_FILE;
+
     /* enter the recursive writer with the root group / container */
-    int err = serialise_cfa_container_netcdf(nc_id, cfa_id);
+    err = _serialise_cfa_container_netcdf(agg_cont->x_id, cfa_id);
     CFA_CHECK(err);
 
     /* add the conventions global metadata */
@@ -840,7 +1001,7 @@ serialise_cfa_netcdf(const int nc_id, const int cfa_id)
     strcat(conventions, CFA_CONVENTION);
     strcat(conventions, CFA_VERSION);
     /* write the netCDF attribute */
-    err = nc_put_att_text(nc_id, NC_GLOBAL, CONVENTIONS,
+    err = nc_put_att_text(agg_cont->x_id, NC_GLOBAL, CONVENTIONS,
                           strlen(conventions), conventions);
     CFA_CHECK(err);
 

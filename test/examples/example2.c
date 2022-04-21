@@ -6,10 +6,10 @@
 #include "cfa.h"
 #include "parsers/cfa_netcdf.h"
 
-const char* output_path = "examples/test/example1.nc";
+const char* output_path = "examples/test/example2.nc";
 
 int
-example1(void)
+example2(void)
 {
     /* recreate example 1 from the documentation */
     int cfa_err = -1;
@@ -73,7 +73,7 @@ example1(void)
     data_location[0] = 6;    // iterate to the next location in the parent array
     cfa_err = cfa_var_put1_frag(cfa_id, cfa_varid,
                                 frag_location, data_location,
-                                "July-December.nc", NULL, "temp", NULL);
+                                NULL, NULL, "temp2", NULL);
     CFA_ERR(cfa_err);
 
     /* write out the initial structures, variables, etc */
@@ -167,12 +167,32 @@ example1(void)
                           strlen(conventions), conventions);
     CFA_ERR(cfa_err);
 
+    /* create the temp2 variable */
+    const int temp_dim_ids[3] = {nc_timeid, nc_latid, nc_lonid};
+    int nc_temp2_var = -1;
+    cfa_err = nc_def_var(nc_id, "temp2", NC_DOUBLE, 
+                         3, temp_dim_ids, &nc_temp2_var);
+    CFA_ERR(cfa_err);
+    /* add metadata */
+    cfa_err = nc_put_att_text(nc_id, nc_temp2_var, "units",
+                              8, "degreesC");
+    CFA_ERR(cfa_err);
+
     /* write the data for the time variable */
     const size_t start = 0;
     const size_t span = 12;
     const int time_vals[12] = 
         {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334};
     cfa_err = nc_put_vara_int(nc_id, nc_timeid, &start, &span, time_vals);
+    CFA_CHECK(cfa_err);
+
+    /* write the data for the temp2 variable */
+    const size_t temp_start[3] = {0, 0, 0};
+    const size_t temp_span[3] = {1, 1, 6};
+    const double temp2_vals[6] = {4.5, 3.0, 0.0, -2.6, -5.6, -10.2};
+    cfa_err = nc_put_vara_double(nc_id, nc_temp2_var,
+                                 temp_start, temp_span, 
+                                 temp2_vals);
     CFA_CHECK(cfa_err);
 
     /* output info */
@@ -197,6 +217,6 @@ example1(void)
 int
 main(void)
 {
-    example1();
+    example2();
     return 0;
 }
