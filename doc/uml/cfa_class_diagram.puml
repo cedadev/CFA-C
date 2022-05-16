@@ -1,16 +1,16 @@
-@startuml CFA-C
+@startuml cfa_class_diagram
 
-class DataType {
+class DataType #lightgrey {
     +string type
     +int size
 }
 
-class FragmentDimension {
+class FragmentDimension #cyan {
     +string name
     +int length
 }
 
-class Fragment {
+class Fragment #cyan {
     +int [] location
     -int [] index
     +string file
@@ -19,7 +19,7 @@ class Fragment {
     +string units
 }
 
-class AggregationInstructions {
+class AggregationInstructions #coral {
     +string location
     -bool location_scaler
     +string file
@@ -28,20 +28,20 @@ class AggregationInstructions {
     +string address
 }
 
-class AggregatedData {
+class AggregatedData #coral {
     +string units
 }
 
-class AggregatedDimension {
+class AggregatedDimension #hotpink {
     +string name
     +int length
 }
 
-class AggregationVariable {
+class AggregationVariable #coral{
     +string name
 }
 
-class AggregationContainer {
+class AggregationContainer #lightskyblue {
     +string path
     +string name
     -string format

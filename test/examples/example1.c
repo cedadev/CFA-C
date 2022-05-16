@@ -4,8 +4,6 @@
 #include <string.h>
 
 #include "cfa.h"
-#include "parsers/cfa_netcdf.h"
-
 const char* output_path = "examples/test/example1.nc";
 
 int

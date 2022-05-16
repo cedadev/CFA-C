@@ -1,0 +1,83 @@
+@startuml code_structure2
+package cfa-c {
+object cfa.h #lightgrey {
+typedef struct **AggregationContainer**
+...
+int **cfa_create**(const char*, CFAFileFormat, int*);
+int **cfa_def_dim**(...);
+...
+int **cfa_def_var**(...);
+...
+int **cfa_def_cont**(...);
+...
+}
+object cfa_mem.h #skyblue{
+typedef struct **DynamicArray**;
+void* **cfa_malloc**(const size_t);
+...
+int **create_array**(DynamicArray**, size_t);
+...
+int **strstrip**(char*);
+char* **strdup**(const char*);
+}
+object cfa_mem.c #skyblue{
+void* **cfa_malloc**(const size_t);
+...
+int **create_array**(DynamicArray**, size_t);
+...
+int **strstrip**(char*);
+...
+}
+cfa_mem.h<--cfa_mem.c
+
+object cfa.c #lightgrey{
+int **cfa_create**(const char *, CFAFileFormat, int *);
+int **cfa_load**(const char *, CFAFileFormat, int *);
+int **cfa_serialise**(const int);
+...
+}
+object cfa_cont.c #lightgrey{
+int **cfa_def_cont**(const int, const char*, int *);
+int **cfa_inq_cont_id**(const int, const char *, int *);
+...
+}
+object cfa_dim.c #lightgrey{
+int **cfa_def_dim**(const int, const char *, const int, const cfa_type, int *);
+int **cfa_inq_dim_id**(const int, const char*, int *);
+...
+}
+object cfa_var.c #lightgrey{
+int **cfa_def_var**(int, const char *, const cfa_type, int *);
+int **cfa_inq_var**(int, const char *, const cfa_type, int *);
+int **cfa_var_def_dims**(const int, const int, const int , const int *);
+int **cfa_var_def_frag_num**(const int, const int, const int *);
+int **cfa_var_put1_frag**(const int cfa_id, const int cfa_var_id, ...);
+...
+}
+object cfa_info.c #lightgrey{
+int **cfa_info**(const int, const int)
+int **cfa_info_var**(const int, const int, const int, const int);
+}
+cfa.h-cfa_mem.h
+cfa.h<--cfa.c
+cfa.h<--cfa_cont.c
+cfa.h<--cfa_dim.c
+cfa.h<--cfa_var.c
+cfa.h<--cfa_info.c
+
+package parsers {
+    object cfa_netcdf.h #coral{
+        int **parse_cfa_netcdf_file**(const char *, int *);
+        int **create_cfa_netcdf_file**(const char *, int *);
+        int **serialise_cfa_netcdf_file**(int);
+    }
+    object cfa_netcdf.c #coral{
+        int **parse_cfa_netcdf_file**(const char *, int *);
+        int **create_cfa_netcdf_file**(const char *, int *);
+        int **serialise_cfa_netcdf_file**(int);
+    }
+    cfa_netcdf.h<--cfa_netcdf.c
+}
+parsers-cfa.c
+}
+@enduml

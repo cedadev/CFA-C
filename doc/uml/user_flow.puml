@@ -1,0 +1,70 @@
+@startuml user_flow
+skinparam defaultFontName Courier
+skinparam noteFontName Arial
+start
+#SkyBlue:int **cfa_create**(path, file_format, *cfa_id);
+note right
+This creates the netCDF file,
+as well as the CFA structures
+end note
+if (return == CFA_NOERR) then (true)
+#SkyBlue:int **cfa_def_dim**(cfa_id, name, length, datatype, *cfa_dim_id)
+int **cfa_def_var**(cfa_id, name, datatype, *cfa_var_id)
+int **cfa_var_def_dims**(cfa_id, cfa_var_id, ndims, *cfa_dim_ids)
+int **cfa_var_def_agg_instr**(cfa_id, cfa_var_id, 
+                          instr, value, scaler)
+int **cfa_var_def_frag_num**(cfa_id, cfa_var_id, *frags);
+note left
+These are CFA functions that define
+the **AggregationVariable**, **AggregatedDimension(s)**
+and **AggregationInstructions**
+inst = "location"|"file"|"format"|"address"
+~*frags is an array of the number of 
+divisions per dimensions
+end note
+#SkyBlue:int **cfa_var_put1_frag**(cfa_id, cfa_var_id, 
+                      ~*frag_location, ~*data_location, 
+                      file, format, address, units);
+note left
+define a single fragment
+endnote
+#SkyBlue:int **cfa_serialise**(cfa_id);
+note left
+write the CFA structures into the CFA-netCDF file,
+including any **Fragments** that have been put
+endnote
+#SkyBlue:int **cfa_get_ext_file_id**(cfa_id, *nc_id);
+note left
+get the id of the netCDF file
+created by **cfa_create**
+end note
+#coral:int **nc_inq_varid**(nc_id, var_name, *nc_var_id)
+int **nc_put_att_text**(nc_id, nc_var_id, attr, len, value);
+note right
+add some metadata to the variables
+variable names in the netCDF file match 
+the CFA names
+end note
+#SkyBlue:int **cfa_var_put1_frag**(cfa_id, cfa_var_id, 
+                      ~*frag_location, ~*data_location, 
+                      file, format, address, units);
+note left
+we can still define fragments
+even after the **cfa_serialise**
+endnote
+#coral:int **nc_put_vara_int**(nc_id, nc_var_id, 
+*start, *stop, *values);
+note right
+use standard netCDF functions to
+write data to the Variables
+end note
+#SkyBlue:int **cfa_close**(cfa_id);
+note left
+close and finalise the netCDF-CFA file
+endnote
+stop
+else (false)
+#IndianRed:CFA_ERR;
+stop
+endif
+@enduml

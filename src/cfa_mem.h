@@ -19,6 +19,6 @@ int allocate_array(void **ptr, int csize, int typesize);
 
 /* string manipulation */
 int strstrip(char *str);    /* strip a string of white space */
-char*strdup(const char *s); /* duplicate a string */
+char* strdup(const char *s); /* duplicate a string */
 
 #endif
