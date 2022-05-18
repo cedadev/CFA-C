@@ -60,7 +60,7 @@ example1(void)
 
     /* add the first Fragment */
     size_t frag_location[4] = {0, 0, 0, 0};
-    size_t data_location[8] = {0,6, 0,1, 0,1, 0,1};
+    size_t data_location[8] = {0,6, 0,1, 0,73, 0,144};
     cfa_err = cfa_var_put1_frag(cfa_id, cfa_varid, 
                                 frag_location, data_location, 
                                 "January-June.nc", "nc", "temp", NULL);
@@ -69,6 +69,10 @@ example1(void)
     /* add the second Fragment */
     frag_location[0] = 1;    // iterate to the next Fragment location
     data_location[0] = 6;    // iterate to the next location in the parent array
+    data_location[1] = 12;   // iterate to the next location in the parent array
+    data_location[3] =
+    data_location[5] =
+    data_location[7] = -1;
     cfa_err = cfa_var_put1_frag(cfa_id, cfa_varid,
                                 frag_location, data_location,
                                 "July-December.nc", NULL, "temp", NULL);

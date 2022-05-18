@@ -56,7 +56,7 @@ example3(void)
                                     "/aggregation/address", 0);
     CFA_ERR(cfa_err);
     /* add the fragmentation */
-    const int frags_nums[4] = {2, 1, 1, 1};
+    const int frags_nums[4] = {3, 1, 2, 2};
     cfa_err = cfa_var_def_frag_num(cfa_id, cfa_varid, frags_nums);
     CFA_ERR(cfa_err);
 
@@ -65,11 +65,33 @@ example3(void)
     CFA_ERR(cfa_err);
 
     /* add the first Fragment */
-    size_t frag_location[4] = {0, 0, 0, 0};
-    size_t data_location[8] = {0,6, 0,1, 0,1, 0,1};
+    size_t frag_location[4];
+    frag_location[0] = 0; frag_location[1] = 0; 
+    frag_location[2] = 0; frag_location[3] = 0;
     cfa_err = cfa_var_put1_frag(cfa_id, cfa_varid, 
-                                frag_location, data_location, 
+                                frag_location, NULL,
                                 NULL, NULL, "temp1", NULL);
+    CFA_ERR(cfa_err);
+
+    frag_location[0] = 0; frag_location[1] = 0; 
+    frag_location[2] = 0; frag_location[3] = 1;
+    cfa_err = cfa_var_put1_frag(cfa_id, cfa_varid,
+                                frag_location, NULL,
+                                NULL, NULL, "temp2", NULL);
+    CFA_ERR(cfa_err);
+
+    frag_location[0] = 0; frag_location[1] = 0; 
+    frag_location[2] = 1; frag_location[3] = 0;
+    cfa_err = cfa_var_put1_frag(cfa_id, cfa_varid,
+                                frag_location, NULL,
+                                NULL, NULL, "temp3", NULL);
+    CFA_ERR(cfa_err);
+
+    frag_location[0] = 0; frag_location[1] = 0; 
+    frag_location[2] = 1; frag_location[3] = 1;
+    cfa_err = cfa_var_put1_frag(cfa_id, cfa_varid,
+                                frag_location, NULL,
+                                NULL, NULL, "temp4", NULL);
     CFA_ERR(cfa_err);
 
     /* write out the initial structures, variables, etc */
@@ -77,13 +99,15 @@ example3(void)
     CFA_ERR(cfa_err);
 
     /* add the second Fragment */
-    frag_location[0] = 1;    // iterate to the next Fragment location
-    data_location[0] = 6;    // iterate to the next location in the parent array
-    cfa_err = cfa_var_put1_frag(cfa_id, cfa_varid,
-                                frag_location, data_location,
-                                NULL, NULL, "temp2", NULL);
-    CFA_ERR(cfa_err);
-    
+    // frag_location[0] = 1;
+    // frag_location[1] = 0;
+    // frag_location[2] = 1;
+    // frag_location[3] = 1; 
+    // cfa_err = cfa_var_put1_frag(cfa_id, cfa_varid,
+    //                             frag_location, NULL,
+    //                             NULL, NULL, "temp2", NULL);
+    // CFA_ERR(cfa_err);
+
     /* once the CFA structure(s) have been serialised we can add the metadata
     to the netCDF variables that have been created during the serialisation */
     /* get the netCDF file id from the CFA File Container */

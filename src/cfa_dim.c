@@ -38,7 +38,7 @@ cfa_def_dim(const int cfa_id, const char *name, const int len,
     CFA_CHECK(cfa_err);
 
     /* copy the length and name to the dimension */
-    dim_node->len = len;
+    dim_node->length = len;
     dim_node->name = strdup(name);
 
     /* assign the type */

@@ -450,7 +450,7 @@ cfa_var_get_frag_dim(const int cfa_id, const int cfa_var_id,
 /* Calculate the linear location in the Fragment Array of the Fragment indexed
 at fraglocp */
 int
-__multidim_to_linear_index(const AggregationVariable *agg_var, 
+_multidim_to_linear_index(const AggregationVariable *agg_var, 
                            const size_t *fraglocp, int *L)
 {
     /* location is sum of the product of the index for the dimension and the
@@ -478,18 +478,80 @@ __multidim_to_linear_index(const AggregationVariable *agg_var,
             D *= frag_dim->length;
         }
 #ifdef _DEBUG
-        /* range check in DEBUG mode */
-        cfa_err = get_array_node(&(cfa_frag_dims), 
-                                agg_var->cfa_frag_dim_idp[v],
-                                (void**)(&frag_dim));
-        CFA_CHECK(cfa_err);
-        if (fraglocp[v] >= (size_t)(frag_dim->length))
-            return CFA_BOUNDS_ERR;
+        if (fraglocp)
+        {
+            /* range check in DEBUG mode */
+            cfa_err = get_array_node(&(cfa_frag_dims), 
+                                    agg_var->cfa_frag_dim_idp[v],
+                                    (void**)(&frag_dim));
+            CFA_CHECK(cfa_err);
+            if (fraglocp[v] >= (size_t)(frag_dim->length))
+                return CFA_BOUNDS_ERR;
+        }
 #endif
         *L += D * fraglocp[v];
     }
     return CFA_NOERR;;
 }
+
+int
+_data_location_to_fragment_index(const AggregationVariable *agg_var, 
+                                  const size_t *data_location,
+                                  size_t *frag_index)
+{
+    /* calculate the fragment index from the data location and information in
+    the aggregation variable */
+    int cfa_err = 0;
+    FragmentDimension *frag_dim;
+    AggregatedDimension *agg_dim;
+    for (int d=0; d<agg_var->cfa_ndim; d++)
+    {
+        /* get the FragmentDimension for this dimension of the variable */
+        cfa_err = get_array_node(
+            &cfa_frag_dims, agg_var->cfa_frag_dim_idp[d], (void**)(&frag_dim)
+        );
+        CFA_CHECK(cfa_err);
+        /* get the Dimension */
+        cfa_err = get_array_node(
+            &cfa_dims, agg_var->cfa_dim_idp[d], (void**)(&agg_dim)
+        );
+        CFA_CHECK(cfa_err);
+        frag_index[d] = (data_location[d<<1] * frag_dim->length) /
+                         agg_dim->length;
+    }
+
+    return CFA_NOERR;
+}
+
+int
+_fragment_index_to_data_location(const AggregationVariable *agg_var, 
+                                  const size_t *frag_index,
+                                  size_t *data_location)
+{
+    /* this is the reverse of the above - get a data location from a fragment
+    index */
+    int cfa_err = 0;
+    FragmentDimension *frag_dim;
+    AggregatedDimension *agg_dim;
+
+    for (int d=0; d<agg_var->cfa_ndim; d++)
+    {
+        cfa_err = get_array_node(
+            &cfa_frag_dims, agg_var->cfa_frag_dim_idp[d], (void**)(&frag_dim)
+        );
+        CFA_CHECK(cfa_err);
+        cfa_err = get_array_node(
+            &cfa_dims, agg_var->cfa_dim_idp[d], (void**)(&agg_dim)
+        );
+        CFA_CHECK(cfa_err);    
+        size_t frag_size = agg_dim->length / frag_dim->length;
+        data_location[d<<1] = frag_index[d] * frag_size;
+        data_location[(d<<1)+1] = data_location[d<<1] + frag_size;
+    }
+
+    return CFA_NOERR;
+}
+
 
 /* write a single Fragment for a variable */
 /* external writing functions */
@@ -512,34 +574,84 @@ cfa_var_put1_frag(const int cfa_id, const int cfa_var_id,
     /* Calculate the linear position in the array.  This function will check 
     that the location is not out of bounds if _DEBUG is set*/
     int L = 0;
-    cfa_err = __multidim_to_linear_index(agg_var, frag_location, &L);
-    CFA_CHECK(cfa_err);
+    /* create the memory for the fragment index */
+    size_t size = sizeof(size_t) * agg_var->cfa_ndim;
+    static size_t frag_location_calc[MAX_DIMS];
+    if (frag_location)
+    {
+        cfa_err = _multidim_to_linear_index(agg_var, frag_location, &L);
+        CFA_CHECK(cfa_err);
+    }
+    else if (data_location)
+    {
+        /* calculate the fragment index if NULL passed in */
+        cfa_err = _data_location_to_fragment_index(
+                      agg_var, data_location, frag_location_calc
+                    );
+        CFA_CHECK(cfa_err);
+        cfa_err = _multidim_to_linear_index(agg_var, frag_location_calc, &L);
+        CFA_CHECK(cfa_err);
+    }
+    else
+    {
+        /* either frag_location or data_location is required */
+        return CFA_VAR_NO_FRAG_INDEX;
+    }
     /* get the fragment at the linear position and write in the details */
     Fragment *frag;
     cfa_err = get_array_node(&(agg_var->cfa_datap->cfa_fragmentsp), L,
                              (void**)(&frag));
+    CFA_CHECK(cfa_err);
+    if (frag->index == NULL)
+        frag->index = cfa_malloc(size);
+    /* copy the frag location - this is a single index into each 
+    FragmentDimension */
+    if (frag_location)
+        memcpy(frag->index, frag_location, size);
+    else
+        memcpy(frag->index, frag_location_calc, size);
+    /* record the linear index, we might need it later for searching / slicing 
+    */
+    frag->linear_index = L;
     /* copy the data location - this is a pair of (loc,span) for each Dimension
     and points into the AggregatedData */
     if (data_location)
     {
-        size_t size = sizeof(size_t) * 2 * agg_var->cfa_ndim;
-        frag->location = cfa_malloc(size);
+        size_t size = (sizeof(size_t) << 1) * agg_var->cfa_ndim;
+        if (frag->location == NULL)
+            frag->location = cfa_malloc(size);
         memcpy(frag->location, data_location, size);
     }
-    /* copy the frag location - this is a single index into each 
-    FragmentDimension */
-    if (frag_location)
+    else if (frag_location)
     {
-        size_t size = sizeof(size_t) * agg_var->cfa_ndim;
-        frag->index = cfa_malloc(size);
-        memcpy(frag->index, frag_location, size);
-
+        /* calculate the data_location from the frag_location and NULL passed
+        into the data_location */
+        size_t size = (sizeof(size_t) << 1) * agg_var->cfa_ndim;
+        if (frag->location == NULL)
+            frag->location = cfa_malloc(size);
+        cfa_err = _fragment_index_to_data_location(
+                      agg_var, frag_location, frag->location
+                    );
+        CFA_CHECK(cfa_err);
     }
+    else
+    {
+         /* either data_location or frag_location is required */
+        return CFA_VAR_NO_FRAG_INDEX;
+    }
+
     /* check if the values are NULL before copying - NULL means "missing value"
     */
-    if (file)    frag->file = strdup(file);       else frag->file = NULL;
-    if (format)  frag->format = strdup(format);   else frag->format = NULL;
+    if (frag->file != NULL) cfa_free(frag->file, strlen(frag->file)+1);
+    if (file) frag->file = strdup(file);          else frag->file = NULL;
+
+    if (frag->format != NULL) cfa_free(frag->format, strlen(frag->format)+1);
+    if (format) frag->format = strdup(format);    else frag->format = NULL;
+
+    if (frag->address != NULL) cfa_free(frag->address, strlen(frag->address)+1);
     if (address) frag->address = strdup(address); else frag->address = NULL;
+
+    if (frag->units != NULL) cfa_free(frag->units, strlen(frag->units)+1);
     if (units)   frag->units = strdup(units);     else frag->units = NULL;
 
     /* copy DataType from parent variable */

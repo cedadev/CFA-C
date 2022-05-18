@@ -51,7 +51,7 @@ int cfa_info_dim(const int cfa_id, const int cfa_dimid,
     CFA_CHECK(cfa_err);
     const char* typename = get_type_name(agg_dim->cfa_dtype.type);
     printf("%*s%s %-22s : (%4i)\n", indent, "", typename, 
-           agg_dim->name, agg_dim->len);
+           agg_dim->name, agg_dim->length);
     return CFA_NOERR;
 }
 

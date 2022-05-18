@@ -316,7 +316,7 @@ _serialise_cfa_dimension_netcdf(const int nc_id,
     create the netCDF dimension with the same size as the AggregatedDimension 
     */
     int nc_dim_id = -1;
-    err = nc_def_dim(nc_id, agg_dim->name, agg_dim->len, &nc_dim_id);
+    err = nc_def_dim(nc_id, agg_dim->name, agg_dim->length, &nc_dim_id);
     CFA_CHECK(err);
     /*
     create the corresponding dimension variable - we need the data type
@@ -584,7 +584,7 @@ _serialise_cfa_fragvar_netcdf(const int nc_id,
     CFA_CHECK(err);
 
     /* get the netCDF dimension ids for the FragmentDimensions */
-    int nc_fragdimids[MAX_DIMS];
+    static int nc_fragdimids[MAX_DIMS];
     FragmentDimension *frag_dim = NULL;
 
     nc_type nc_dtype = -1;
@@ -672,17 +672,6 @@ cfa_netcdf_write1_frag(const int nc_id,
     int grp_id = -1;
     int var_id = -1;
 
-    /* write out one element in the location variable */
-    if (frag->location)
-    {
-        cfa_err = _get_nc_grp_var_ids_from_str(
-            nc_id, 
-            agg_var->cfa_instructionsp->location,
-            &grp_id, &var_id
-        );
-        CFA_CHECK(cfa_err);        
-    }
-
     /* write out one element in the file variable */
     /* get the netCDF group and variable id from the long name with groups
     compounded in it */
@@ -734,6 +723,63 @@ cfa_netcdf_write1_frag(const int nc_id,
 }
 
 /*
+write out the location variable - this is a special case as it contains the
+spans of the fragments in a 2-D array
+*/
+
+int
+_write_cfa_fragloc_netcdf(const int loc_grpid, 
+                          const int cfa_id, const int cfa_varid,
+                          const char *fragloc_varname)
+{
+    /* get the AggregationVariable */
+    AggregationVariable *agg_var = NULL;
+    int err = cfa_get_var(cfa_id, cfa_varid, &agg_var);
+    CFA_CHECK(err);    
+    /* get the variable id for the fragloc_varname */
+    int nc_varid = -1;
+    err = nc_inq_varid(loc_grpid, fragloc_varname, &nc_varid);
+    CFA_CHECK(err);
+    /* loop over each dimension */
+    AggregatedDimension *agg_dim = NULL;
+    FragmentDimension *frag_dim = NULL;
+    /* get the maximum size of the j dimensions */
+    int max_frag_dim_len = -1;
+    err = _get_max_frag_dim_len(agg_var, &max_frag_dim_len);
+    CFA_CHECK(err);
+    /* create an array containing the spans */
+    int frag_span[max_frag_dim_len];
+
+    for (int d=0; d<agg_var->cfa_ndim; d++)
+    {
+        /* get the span by dividing the dimension length by the fragment 
+        dimension length */
+        err = cfa_get_dim(cfa_id, agg_var->cfa_dim_idp[d], &agg_dim);
+        CFA_CHECK(err);
+        err = cfa_var_get_frag_dim(cfa_id, cfa_varid, d, &frag_dim);
+        CFA_CHECK(err);
+        int span = agg_dim->length / frag_dim->length;
+        /* load up the frag_span */
+        int c_len = 0;
+        int c_index = 0;
+        while (c_len < agg_dim->length)
+        {
+            frag_span[c_index] = span;
+            c_index ++;
+            c_len += span;
+        }
+        /* write the frag_span */
+        size_t c_pos[2] = {(size_t)(d), 0};
+        size_t c_span[2] = {1, (size_t)(c_index)};
+        err = nc_put_vara_int(loc_grpid, nc_varid, 
+                              c_pos, c_span, frag_span);
+        CFA_CHECK(err);
+    }
+
+    return CFA_NOERR;
+}
+
+/*
 write out the CFA Fragments - these are variables in the netCDF file, that may
 be contained within a group
 */
@@ -758,6 +804,8 @@ _serialise_cfa_fragments_netcdf(const int nc_id,
     err = _serialise_cfa_fragvar_netcdf(loc_grpid, cfa_id, cfa_varid, 
                                         "location",
                                         agg_inst->location, &loc_varid);
+    CFA_CHECK(err);
+    err = _write_cfa_fragloc_netcdf(loc_grpid, cfa_id, cfa_varid, "location");
     CFA_CHECK(err);
 
     /****** FILE ******/
