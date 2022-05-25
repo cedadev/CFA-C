@@ -759,18 +759,19 @@ _write_cfa_fragloc_netcdf(const int loc_grpid,
         err = cfa_var_get_frag_dim(cfa_id, cfa_varid, d, &frag_dim);
         CFA_CHECK(err);
         int span = agg_dim->length / frag_dim->length;
-        /* load up the frag_span */
-        int c_len = 0;
-        int c_index = 0;
-        while (c_len < agg_dim->length)
+        /* write out each frag span into the array */
+        for (int f=0; f<frag_dim->length; f++)
         {
-            frag_span[c_index] = span;
-            c_index ++;
-            c_len += span;
+            frag_span[f] = span;
+            /* special case for odd agg_dim->length */
+            if (agg_dim->length % 2 != 0 && 
+                f == frag_dim->length-1 &&
+                frag_dim->length !=1)
+                frag_span[f] ++;
         }
         /* write the frag_span */
         size_t c_pos[2] = {(size_t)(d), 0};
-        size_t c_span[2] = {1, (size_t)(c_index)};
+        size_t c_span[2] = {1, (size_t)(frag_dim->length)};
         err = nc_put_vara_int(loc_grpid, nc_varid, 
                               c_pos, c_span, frag_span);
         CFA_CHECK(err);
