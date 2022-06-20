@@ -31,19 +31,6 @@
         },
 
         {
-            "name": "test_cfa_save",
-            "program": "${workspaceRoot}/build/test_cfa_save",
-            "type": "cppdbg",
-            "request": "launch",
-            "cwd": "${workspaceRoot}",
-            "targetArchitecture": "x64",
-            "osx": {
-                "MIMode": "lldb"
-            },  
-            "preLaunchTask": "build_test_cfa_save"
-        },
-
-        {
             "name": "test_cfa_mem",
             "program": "${workspaceRoot}/build/test_cfa_mem",
             "type": "cppdbg",
@@ -70,19 +57,6 @@
         },
 
         {
-            "name": "test_cfa_load",
-            "program": "${workspaceRoot}/build/test_cfa_load",
-            "type": "cppdbg",
-            "request": "launch",
-            "cwd": "${workspaceRoot}",
-            "targetArchitecture": "x64",
-            "osx": {
-                "MIMode": "lldb"
-            },  
-            "preLaunchTask": "build_test_cfa_load"
-        },
-
-        {
             "name": "test_cfa_containers",
             "program": "${workspaceRoot}/build/test_cfa_cont",
             "type": "cppdbg",
@@ -95,8 +69,22 @@
             "preLaunchTask": "build_test_cfa_cont"
         },
         {
-            "name": "example1",
+            "name": "example1_save",
             "program": "${workspaceRoot}/build/examples/example1",
+            "args": ["S"],
+            "type": "cppdbg",
+            "request": "launch",
+            "cwd": "${workspaceRoot}",
+            "targetArchitecture": "x64",
+            "osx": {
+                "MIMode": "lldb"
+            },  
+            "preLaunchTask": "build_example1"
+        },
+        {
+            "name": "example1_load",
+            "program": "${workspaceRoot}/build/examples/example1",
+            "args": ["L"],
             "type": "cppdbg",
             "request": "launch",
             "cwd": "${workspaceRoot}",
@@ -119,8 +107,22 @@
             "preLaunchTask": "build_example2"
         },
         {
-            "name": "example3",
+            "name": "example3_save",
             "program": "${workspaceRoot}/build/examples/example3",
+            "args": ["S"],
+            "type": "cppdbg",
+            "request": "launch",
+            "cwd": "${workspaceRoot}",
+            "targetArchitecture": "x64",
+            "osx": {
+                "MIMode": "lldb"
+            },  
+            "preLaunchTask": "build_example3"
+        },
+        {
+            "name": "example3_load",
+            "program": "${workspaceRoot}/build/examples/example3",
+            "args": ["L"],
             "type": "cppdbg",
             "request": "launch",
             "cwd": "${workspaceRoot}",

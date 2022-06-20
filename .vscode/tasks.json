@@ -30,11 +30,6 @@
             "args": ["test_cfa_dim"],
         },
         {
-            "label": "build_test_cfa_save",
-            "command": "make",
-            "args": ["test_cfa_save"],
-        },
-        {
             "label": "build_test_cfa_mem",
             "command": "make",
             "args": ["test_cfa_mem"],
@@ -43,11 +38,6 @@
             "label": "build_test_cfa_var",
             "command": "make",
             "args": ["test_cfa_var"],
-        },
-        {
-            "label": "build_test_cfa_load",
-            "command": "make",
-            "args": ["test_cfa_load"],
         },
         {
             "label": "build_test_cfa_cont",

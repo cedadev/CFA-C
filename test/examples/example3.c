@@ -8,8 +8,9 @@
 const char* output_path = "examples/test/example3.nc";
 
 int
-example3(void)
+example3_save(void)
 {
+    printf("Example 3 test save\n");
     /* recreate example 3 from the documentation */
     int cfa_err = -1;
     int cfa_id = -1;
@@ -73,6 +74,7 @@ example3(void)
                                 NULL, NULL, "temp1", NULL);
     CFA_ERR(cfa_err);
 
+    /* add the second Fragment */
     frag_location[0] = 1; frag_location[1] = 0; 
     frag_location[2] = 0; frag_location[3] = 0;
     cfa_err = cfa_var_put1_frag(cfa_id, cfa_varid,
@@ -230,8 +232,29 @@ example3(void)
 }
 
 int
-main(void)
+example3_load(void)
 {
-    example3();
+    printf("Example 3 test save\n");
+    return CFA_NOERR;
+}
+
+int
+main(int argc, char **argv)
+{
+    /* Argument passed in: S - test save, L - test load */
+    if (argc != 2)
+    {
+        printf("Wrong number of arguments");
+        return 1;
+    }
+    if (strcmp(argv[1], "S") == 0)
+        example3_save();
+    else if (strcmp(argv[1], "L") == 0)
+        example3_load();
+    else
+    {
+        printf("Unknown argument\n");
+        return 1;
+    }
     return 0;
 }

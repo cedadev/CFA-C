@@ -729,16 +729,23 @@ spans of the fragments in a 2-D array
 
 int
 _write_cfa_fragloc_netcdf(const int loc_grpid, 
-                          const int cfa_id, const int cfa_varid,
-                          const char *fragloc_varname)
+                          const int cfa_id, const int cfa_varid)
 {
     /* get the AggregationVariable */
     AggregationVariable *agg_var = NULL;
     int err = cfa_get_var(cfa_id, cfa_varid, &agg_var);
-    CFA_CHECK(err);    
-    /* get the variable id for the fragloc_varname */
+    CFA_CHECK(err);
+
+    /* get the actual name of the variable, outside of the group */
+    char agg_var_name[STR_LENGTH];
+    err = _get_var_name_from_str(agg_var->cfa_instructionsp->location, 
+                                 agg_var_name);
+    CFA_CHECK(err);
+
+    /* get the variable id for the aggregation instruction variable name */
     int nc_varid = -1;
-    err = nc_inq_varid(loc_grpid, fragloc_varname, &nc_varid);
+    
+    err = nc_inq_varid(loc_grpid, agg_var_name, &nc_varid);
     CFA_CHECK(err);
     /* loop over each dimension */
     AggregatedDimension *agg_dim = NULL;
@@ -806,7 +813,7 @@ _serialise_cfa_fragments_netcdf(const int nc_id,
                                         "location",
                                         agg_inst->location, &loc_varid);
     CFA_CHECK(err);
-    err = _write_cfa_fragloc_netcdf(loc_grpid, cfa_id, cfa_varid, "location");
+    err = _write_cfa_fragloc_netcdf(loc_grpid, cfa_id, cfa_varid);
     CFA_CHECK(err);
 
     /****** FILE ******/
