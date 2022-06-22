@@ -135,21 +135,21 @@ cfa_var_def_agg_instr(const int cfa_id, const int cfa_var_id,
     AggregationVariable *agg_var;
     int err = cfa_get_var(cfa_id, cfa_var_id, &agg_var);
     CFA_CHECK(err);
-    if (strcmp(instruction, "location") == 0)
+    if (strncmp(instruction, "location", 8) == 0)
     {
         agg_var->cfa_instructionsp->location = strdup(value);
         agg_var->cfa_instructionsp->location_scaler = scalar_location;
     }
-    else if (strcmp(instruction, "file") == 0)
+    else if (strncmp(instruction, "file", 4) == 0)
     {
         agg_var->cfa_instructionsp->file = strdup(value);
     }
-    else if (strcmp(instruction, "format") == 0)
+    else if (strncmp(instruction, "format", 6) == 0)
     {
         agg_var->cfa_instructionsp->format = strdup(value);
         agg_var->cfa_instructionsp->format_scaler = scalar_location;
     }
-    else if (strcmp(instruction, "address") == 0)
+    else if (strncmp(instruction, "address", 7) == 0)
     {
         agg_var->cfa_instructionsp->address = strdup(value);
     }
@@ -834,13 +834,19 @@ cfa_free_vars(const int cfa_id)
         /* if number of non-free dimensions is 0 then free the array */
         if (nfv == 0)
         {
-            cfa_err = free_array(&cfa_vars);
-            CFA_CHECK(cfa_err);
-            cfa_vars = NULL;
+            if (cfa_vars)
+            {
+                cfa_err = free_array(&cfa_vars);
+                CFA_CHECK(cfa_err);
+                cfa_vars = NULL;
+            }
             /* also free the FragmentDimension array */
-            cfa_err = free_array(&cfa_frag_dims);
-            CFA_CHECK(cfa_err);
-            cfa_frag_dims = NULL;
+            if (cfa_frag_dims)
+            {
+                cfa_err = free_array(&cfa_frag_dims);
+                CFA_CHECK(cfa_err);
+                cfa_frag_dims = NULL;
+            }
         }
     }
 

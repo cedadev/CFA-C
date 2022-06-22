@@ -48,15 +48,6 @@ cfa_create(const char *path, CFAFileFormat format, int *cfa_idp)
     /* create the file */
     cfa_node->x_id = -1;
     cfa_node->format = format;
-    switch (format)
-    {
-        case CFA_NETCDF:
-            cfa_err = create_cfa_netcdf_file(path, &(cfa_node->x_id));
-            CFA_CHECK(cfa_err);
-            break;
-        default:
-            return CFA_UNKNOWN_FILE_FORMAT;
-    }
 
     return CFA_NOERR;
 }

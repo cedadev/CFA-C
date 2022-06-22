@@ -173,8 +173,11 @@ cfa_free_cont(const int cfa_id)
     /* if number of non-free containers is 0 then free the array */
     if (nfc == 0)
     {
-        cfa_err = free_array(&cfa_conts);
-        cfa_conts = NULL;
+        if (cfa_conts)
+        {
+            cfa_err = free_array(&cfa_conts);
+            cfa_conts = NULL;
+        }
     }
     CFA_CHECK(cfa_err);
     return CFA_NOERR;

@@ -4,7 +4,7 @@
 #include <string.h>
 
 #include "cfa.h"
-const char* output_path = "examples/test/example1.nc";
+const char* example1_path = "examples/test/example1.nc";
 
 int
 example1_save(void)
@@ -18,7 +18,7 @@ example1_save(void)
     int nc_id = -1;
 
     /* create the CFA parent container */
-    cfa_err = cfa_create(output_path, CFA_NETCDF, &cfa_id);
+    cfa_err = cfa_create(example1_path, CFA_NETCDF, &cfa_id);
     CFA_ERR(cfa_err);
 
     /* define the CFA dimensions */
@@ -200,7 +200,20 @@ example1_save(void)
 int
 example1_load(void)
 {
+    int cfa_err = -1;
+    int cfa_id = -1;
     printf("Example 1 test load\n");
+    
+    /* load and parse */
+    cfa_err = cfa_load(example1_path, CFA_NETCDF, &cfa_id);
+    CFA_ERR(cfa_err);
+
+    /* output info */
+    cfa_err = cfa_info(cfa_id, 0);
+    CFA_ERR(cfa_err);
+
+    cfa_err = cfa_memcheck();
+    CFA_ERR(cfa_err);
     return CFA_NOERR;
 }
 

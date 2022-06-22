@@ -41,7 +41,7 @@ the file */
 #define CFA_UNKNOWN_FILE_FORMAT    (-540) /* Unsupported CFA file format */
 #define CFA_NOT_CFA_FILE           (-541) /* Not a CFA file - does not contain relevant metadata */
 #define CFA_UNSUPPORTED_VERSION    (-542) /* Unsupported version of CFA-netCDF */
-#define CFA_NO_FILE                (-543) /* Output / Input file not create */
+#define CFA_NO_FILE                (-543) /* Output / Input file not created */
 #define CFA_AGG_DATA_ERR           (-550) /* Something went wrong parsing the
 "aggregated_data" attribute */
 #define CFA_AGG_DIM_ERR            (-550) /* Something went wrong parsing the "aggregated_dimensions" attribute */

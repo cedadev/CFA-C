@@ -3,7 +3,7 @@
 # Input / output directories
 SRC_DIR=src
 BLD_DIR=build
-BLD_EX_DIR=$(BLD_DIR)/examples/
+BLD_EX_DIR=$(BLD_DIR)/examples
 TST_DIR=test
 LIB_DIR=lib
 
@@ -42,7 +42,7 @@ test_% : $(TST_DIR)/test_%.c $(CFA_LIB) $(BLD_DIR)
 	$(CC) $(CFLAGS) $(DEBUGFLAGS) $(LFLAGS) $< -o $(BLD_DIR)/$@
 
 example% : $(TST_DIR)/examples/example%.c $(CFA_LIB) $(BLD_EX_DIR)
-	$(CC) $(CFLAGS) $(DEBUGFLAGS) $(LFLAGS) $< -o $(BLD_EX_DIR)$@
+	$(CC) $(CFLAGS) $(DEBUGFLAGS) $(LFLAGS) $< -o $(BLD_EX_DIR)/$@
 
 tests : test_cfa test_cfa_dim test_cfa_mem test_cfa_var test_cfa_cont
 	build/test_cfa
