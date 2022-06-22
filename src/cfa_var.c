@@ -138,7 +138,7 @@ cfa_var_def_agg_instr(const int cfa_id, const int cfa_var_id,
     if (strncmp(instruction, "location", 8) == 0)
     {
         agg_var->cfa_instructionsp->location = strdup(value);
-        agg_var->cfa_instructionsp->location_scaler = scalar_location;
+        agg_var->cfa_instructionsp->location_scalar = scalar_location;
     }
     else if (strncmp(instruction, "file", 4) == 0)
     {
@@ -147,7 +147,7 @@ cfa_var_def_agg_instr(const int cfa_id, const int cfa_var_id,
     else if (strncmp(instruction, "format", 6) == 0)
     {
         agg_var->cfa_instructionsp->format = strdup(value);
-        agg_var->cfa_instructionsp->format_scaler = scalar_location;
+        agg_var->cfa_instructionsp->format_scalar = scalar_location;
     }
     else if (strncmp(instruction, "address", 7) == 0)
     {

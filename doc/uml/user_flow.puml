@@ -12,7 +12,7 @@ if (return == CFA_NOERR) then (true)
 int **cfa_def_var**(cfa_id, name, datatype, *cfa_var_id)
 int **cfa_var_def_dims**(cfa_id, cfa_var_id, ndims, *cfa_dim_ids)
 int **cfa_var_def_agg_instr**(cfa_id, cfa_var_id, 
-                          instr, value, scaler)
+                          instr, value, scalar)
 int **cfa_var_def_frag_num**(cfa_id, cfa_var_id, *frags);
 note left
 These are CFA functions that define

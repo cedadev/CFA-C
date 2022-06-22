@@ -211,6 +211,36 @@ _get_key_and_value_from_att_str(const char* att_str, char* key, char* value)
 }
 
 /*
+get the size of a variable - mostly to check whether it is a scalar or not
+*/
+int
+_get_var_size(int nc_grpid, int nc_varid, size_t* var_size)
+{
+    /* create a product of all the dimension lengths */
+    /* get the number of dimensions */
+    int ndims = -1;
+    int err = nc_inq_varndims(nc_grpid, nc_varid, &ndims);
+    CFA_CHECK(err);
+
+    /* get all the dimension ids */
+    int dimids[MAX_DIMS];
+    err = nc_inq_vardimid(nc_grpid, nc_varid, dimids);
+    CFA_CHECK(err);
+
+    /* size will be a product of all the dimension lengths */
+    size_t dimlen = -1;
+    *var_size = 1;
+    for (int d=0; d<ndims; d++)
+    {
+        err = nc_inq_dimlen(nc_grpid, dimids[d], &dimlen);
+        CFA_CHECK(err);
+        *var_size *= dimlen;
+    }
+    return CFA_NOERR;
+}
+
+
+/*
 get the aggregation instructions from an attribute string
 */
 int
@@ -223,23 +253,42 @@ _parse_cfa_aggregation_instructions(const int ncid, const int ncvarid,
     int err = nc_get_att_text(ncid, ncvarid, AGGREGATED_DATA, att_str);
     CFA_CHECK(err);
 
+    /* variables for determining if a scalar or not */
+    int nc_grpid = -1;
+    int nc_varid = -1;
+    size_t var_size = 0;
+    int scalar = 0;
+
     /* parse the "aggregated_data" attribute, getting each key:value pair */
     int n_agg_instr = 0;
     char key[STR_LENGTH] = "";
     char value[STR_LENGTH] = "";
+
     /* extract the initial key: value pairs */
     char* c_ptr = _get_key_and_value_from_att_str(att_str, key, value);;
     while(c_ptr != NULL)
     {
-
-        /* determine whether this is a scalar dimension or not */
-        int nc_grp = -1;
-        int nc_var = -1;
-        err = _get_nc_grp_var_ids_from_str(ncid, value, &nc_grp, &nc_var);
+        /* determine whether this is a scalar variable or not
+        for the location and format variables */
+        char var_name[STR_LENGTH] = "";
+        err = _get_var_name_from_str(value, var_name);
         CFA_CHECK(err);
-        
+        if (strcmp(var_name, "location") == 0 ||
+            strcmp(var_name, "format") == 0)
+        {
+            err = _get_nc_grp_var_ids_from_str(ncid, value, 
+                                               &nc_grpid, &nc_varid);
+            CFA_CHECK(err);
+            err = _get_var_size(nc_grpid, nc_varid, &var_size);
+            CFA_CHECK(err);
+            if (var_size == 1)
+                scalar = 1;
+            else
+                scalar = 0;
+        }
+
         /* define the aggregation instructions in the cfa var */
-        err = cfa_var_def_agg_instr(cfa_id, cfa_var_id, key, value, 0);
+        err = cfa_var_def_agg_instr(cfa_id, cfa_var_id, key, value, scalar);
         CFA_CHECK(err);
         if (!err)
             n_agg_instr++;
@@ -630,21 +679,21 @@ _serialise_cfa_fragvar_netcdf(const int nc_id,
     err = _get_agg_inst_type(agg_inst_name, &nc_dtype);
     CFA_CHECK(err);
 
-    /* check whether Aggregation Instruction is a scaler */
-    int scaler = 0;
+    /* check whether Aggregation Instruction is a scalar */
+    int scalar = 0;
     if (strcmp(agg_inst_name, "format") == 0 && 
-        agg_var->cfa_instructionsp->format_scaler != 0)
-        scaler = 1;
+        agg_var->cfa_instructionsp->format_scalar != 0)
+        scalar = 1;
     if (strcmp(agg_inst_name, "location") == 0 &&
-        agg_var->cfa_instructionsp->location_scaler != 0)
-        scaler = 1;
+        agg_var->cfa_instructionsp->location_scalar != 0)
+        scalar = 1;
 
     /* get the actual name of the variable, outside of the group */
     char agg_var_name[STR_LENGTH] = "";
     err = _get_var_name_from_str(agg_inst_var, agg_var_name);
     CFA_CHECK(err);
 
-    if (scaler)
+    if (scalar)
     {
         /* create the variable */
         err = nc_def_var(nc_id, agg_var_name, nc_dtype, 0, NULL, frag_varid);
@@ -736,7 +785,7 @@ cfa_netcdf_write1_frag(const int nc_id,
         );
         CFA_CHECK(cfa_err);
         /* format can be a scalar */
-        if (agg_var->cfa_instructionsp->format_scaler)
+        if (agg_var->cfa_instructionsp->format_scalar)
             cfa_err = nc_put_var1_string(grp_id, var_id, frag->index,
                                          (const char**)(&(frag->format)));
         else

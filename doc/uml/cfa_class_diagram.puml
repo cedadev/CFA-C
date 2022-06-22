@@ -21,10 +21,10 @@ class Fragment #cyan {
 
 class AggregationInstructions #coral {
     +string location
-    -bool location_scaler
+    -bool location_scalar
     +string file
     +string format
-    -bool format_scaler
+    -bool format_scalar
     +string address
 }
 

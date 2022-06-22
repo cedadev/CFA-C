@@ -91,10 +91,10 @@ typedef struct {
 /* AggregationInstructions */
 typedef struct {
     char *location;
-    int location_scaler;
+    int location_scalar;
     char *file;
     char *format;
-    int format_scaler;
+    int format_scalar;
     char *address;
 } AggregationInstructions;
 
@@ -228,7 +228,7 @@ extern int cfa_var_def_dims(const int cfa_id, const int cfa_var_id,
                             const int ndims, const int *cfa_dim_idsp);
 
 /* add the AggregationInstructions from a string 
-   location or format may be scaler */
+   location or format may be scalar */
 extern int cfa_var_def_agg_instr(const int cfa_id, const int cfa_var_id,
                                  const char* instruction,
                                  const char* value, const int scalar_location);
