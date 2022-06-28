@@ -33,6 +33,7 @@ the file */
 #define CFA_NOT_FOUND_ERR          (-510) /* Cannot find CFA Container */
 #define CFA_DIM_NOT_FOUND_ERR      (-520) /* Cannot find CFA Dimension */
 #define CFA_VAR_NOT_FOUND_ERR      (-530) /* Cannot find CFA Variable */
+#define CFA_VAR_NO_AGG_INSTR       (-531) /* Aggregation instructions missing */
 #define CFA_VAR_FRAGS_DEF          (-531) /* Fragments already defined */
 #define CFA_VAR_FRAGS_UNDEF        (-532) /* Fragments not defined yet */
 #define CFA_VAR_FRAG_DIM_NOT_FOUND (-533) /* Fragment dimension not found */
@@ -230,8 +231,8 @@ extern int cfa_var_def_dims(const int cfa_id, const int cfa_var_id,
 /* add the AggregationInstructions from a string 
    location or format may be scalar */
 extern int cfa_var_def_agg_instr(const int cfa_id, const int cfa_var_id,
-                                 const char* instruction,
-                                 const char* value, const int scalar_location);
+                                 const char *instruction,
+                                 const char *value, const int scalar_location);
 
 /* get the identifier of an AggregationVariable by name */
 extern int cfa_inq_var_id(const int cfa_id, const char *name, 
@@ -264,6 +265,12 @@ extern int cfa_var_put1_frag(const int cfa_id, const int cfa_var_id,
                              const size_t *data_location,
                              const char *file, const char *format, 
                              const char *address, const char *units);
+
+/* get a single Fragment for a variable */
+extern int cfa_var_get1_frag(const int cfa_id, const int cfa_var_id,
+                             const size_t *frag_location,
+                             const size_t *data_location,
+                             const Fragment **ret_frag);
 
 /* info / output command - output the structure of a container, including the
 dimensions, variables and any sub-containers

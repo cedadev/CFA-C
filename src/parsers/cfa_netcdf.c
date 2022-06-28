@@ -1,5 +1,6 @@
 #include <netcdf.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "cfa.h"
@@ -239,10 +240,122 @@ _get_var_size(int nc_grpid, int nc_varid, size_t* var_size)
     return CFA_NOERR;
 }
 
+int
+_parse_cfa_aggregated_dimensions(const int ncid, const int ncvarid, 
+                                 const int cfa_id, const int cfa_var_id)
+{
+    /* read the "aggregated dimensions" attribute */
+    char att_str[STR_LENGTH] = "";
+
+    int err = nc_get_att_text(ncid, ncvarid, AGGREGATED_DIMENSIONS, att_str);
+    CFA_CHECK(err);
+    /* split on space */
+    char *strp = strtok(att_str, " ");
+    /* process the split string into dimname and either create or get the dimid
+    */
+    char dimname[STR_LENGTH] = "";
+    int ndims = 0;
+    int dimids[NC_MAX_DIMS];
+    while(strp != NULL)
+    {
+        strcpy(dimname, strp);
+        /* see if the CFA AggregatedDimension has already been added */
+        int cfa_dim_id = 0;
+        err = cfa_inq_dim_id(cfa_id, dimname, &cfa_dim_id);
+        if (err == CFA_DIM_NOT_FOUND_ERR)   /* this is the desirable outcome */
+        {
+            /* get the length of the dimension from the netCDF file */
+            int ncdimid = 0;
+            int ncdimvarid = 0;
+            size_t ncdimlen = 0;
+            nc_type dtype = NC_NAT;
+            err = nc_inq_dimid(ncid, dimname, &ncdimid);
+            CFA_CHECK(err);
+            err = nc_inq_dimlen(ncid, ncdimid, &ncdimlen);
+            CFA_CHECK(err);
+            /* get the Dimension type from the Dimension variable */
+            err = nc_inq_varid(ncid, dimname, &ncdimvarid);
+            CFA_CHECK(err);
+            err = nc_inq_vartype(ncid, ncdimvarid, &dtype);
+            CFA_CHECK(err);
+            /* create the AggregatedDimension */
+            err = cfa_def_dim(cfa_id, dimname, ncdimlen, dtype, &cfa_dim_id);
+            CFA_CHECK(err);
+        }
+        else if (err != CFA_NOERR)
+            CFA_CHECK(err);
+        dimids[ndims] = cfa_dim_id;
+        ndims++;
+        strp = strtok(NULL, " ");
+    }
+    /* we now have an array of AggregatedDimensions in dimids, add these to 
+    the AggregationVariable */
+    err = cfa_var_def_dims(cfa_id, cfa_var_id, ndims, dimids);
+    CFA_CHECK(err);
+    return CFA_NOERR;
+}
+
+/*
+parse the FragmentDimensions from the netCDF file and call
+_create_fragment_dimensions - this will create the Fragment array ready to read
+Fragment definitions into when cfa_var_get1_frag(...) is called (which in turn
+calls _read_cfa_fragloc_netcdf(...)
+*/
+
+extern int _create_fragment_dimensions(int, AggregationVariable*, const int*);
+
+int
+_parse_cfa_fragment_dimensions(const int ncid,
+                               const int cfa_id, const int cfa_var_id)
+{
+    int cfa_err = -1;
+    /* get the CFA variable */
+    AggregationVariable *cfa_var = NULL;
+    cfa_err = cfa_get_var(cfa_id, cfa_var_id, &cfa_var);
+    CFA_CHECK(cfa_err);
+    /* we can get the number of fragments along each dimension from the 
+    file variable, or from the address variable as these are never scalar */
+    if (!(cfa_var->cfa_instructionsp && cfa_var->cfa_instructionsp->file))
+        return CFA_VAR_NO_AGG_INSTR;
+    int file_frag_grpid = -1;
+    int file_frag_varid = -1;
+    cfa_err = _get_nc_grp_var_ids_from_str(
+        ncid, cfa_var->cfa_instructionsp->file, 
+        &file_frag_grpid, &file_frag_varid
+    );
+    CFA_CHECK(cfa_err);
+
+    /* get the number of dims */
+    int ndims = -1;
+    int err = nc_inq_varndims(file_frag_grpid, file_frag_varid, &ndims);
+    CFA_CHECK(err);
+
+    /* get the dim ids from the file variable */
+    int dimids[MAX_DIMS];
+    int dimlen[MAX_DIMS];
+    cfa_err = nc_inq_vardimid(file_frag_grpid, file_frag_varid, dimids);
+    CFA_CHECK(cfa_err);
+
+    /* get the dim lens from the file variable */
+    for (int d=0; d<ndims; d++)
+    {
+        size_t dl = -1;
+        err = nc_inq_dimlen(file_frag_grpid, dimids[d], &dl);
+        dimlen[d] = (int)(dl);
+        CFA_CHECK(err);
+    }
+
+    /* finally define the fragments */
+    cfa_err = _create_fragment_dimensions(cfa_id, cfa_var, dimlen);
+    CFA_CHECK(err);
+
+    return CFA_NOERR;
+}
 
 /*
 get the aggregation instructions from an attribute string
 */
+
 int
 _parse_cfa_aggregation_instructions(const int ncid, const int ncvarid,
                                     const int cfa_id, const int cfa_var_id)
@@ -305,61 +418,6 @@ _parse_cfa_aggregation_instructions(const int ncid, const int ncvarid,
     return CFA_NOERR;
 }
 
-int
-_parse_cfa_aggregated_dimensions(const int ncid, const int ncvarid, 
-                                 const int cfa_id, const int cfa_var_id)
-{
-    /* read the "aggregated dimensions" attribute */
-    char att_str[STR_LENGTH] = "";
-
-    int err = nc_get_att_text(ncid, ncvarid, AGGREGATED_DIMENSIONS, att_str);
-    CFA_CHECK(err);
-    /* split on space */
-    char *strp = strtok(att_str, " ");
-    /* process the split string into dimname and either create or get the dimid
-    */
-    char dimname[STR_LENGTH] = "";
-    int ndims = 0;
-    int dimids[NC_MAX_DIMS];
-    while(strp != NULL)
-    {
-        strcpy(dimname, strp);
-        /* see if the CFA AggregatedDimension has already been added */
-        int cfa_dim_id = 0;
-        err = cfa_inq_dim_id(cfa_id, dimname, &cfa_dim_id);
-        if (err == CFA_DIM_NOT_FOUND_ERR)   /* this is the desirable outcome */
-        {
-            /* get the length of the dimension from the netCDF file */
-            int ncdimid = 0;
-            int ncdimvarid = 0;
-            size_t ncdimlen = 0;
-            nc_type dtype = NC_NAT;
-            err = nc_inq_dimid(ncid, dimname, &ncdimid);
-            CFA_CHECK(err);
-            err = nc_inq_dimlen(ncid, ncdimid, &ncdimlen);
-            CFA_CHECK(err);
-            /* get the Dimension type from the Dimension variable */
-            err = nc_inq_varid(ncid, dimname, &ncdimvarid);
-            CFA_CHECK(err);
-            err = nc_inq_vartype(ncid, ncdimvarid, &dtype);
-            CFA_CHECK(err);
-            /* create the AggregatedDimension */
-            err = cfa_def_dim(cfa_id, dimname, ncdimlen, dtype, &cfa_dim_id);
-            CFA_CHECK(err);
-        }
-        else if (err != CFA_NOERR)
-            CFA_CHECK(err);
-        dimids[ndims] = cfa_dim_id;
-        ndims++;
-        strp = strtok(NULL, " ");
-    }
-    /* we now have an array of AggregatedDimensions in dimids, add these to 
-    the AggregationVariable */
-    err = cfa_var_def_dims(cfa_id, cfa_var_id, ndims, dimids);
-    CFA_CHECK(err);
-    return CFA_NOERR;
-}
-
 /*
 parse an individual variable
 */
@@ -376,11 +434,15 @@ _parse_cfa_variable_netcdf(const int ncid, const int ncvarid, const int cfa_id)
     int cfa_var_id = -1;
     err = cfa_def_var(cfa_id, varname, vtype, &cfa_var_id);
     CFA_CHECK(err);
+
     /* get the aggregation instructions */
     err = _parse_cfa_aggregation_instructions(ncid, ncvarid, cfa_id, cfa_var_id);
     CFA_CHECK(err);
     /* get the aggregated dimensions */
     err = _parse_cfa_aggregated_dimensions(ncid, ncvarid, cfa_id, cfa_var_id);
+    CFA_CHECK(err);
+    /* parse the fragment dimensions */
+    err = _parse_cfa_fragment_dimensions(ncid, cfa_id, cfa_var_id);
     CFA_CHECK(err);
 
     return CFA_NOERR;
@@ -446,6 +508,139 @@ _parse_cfa_container_netcdf(int ncid, int cfa_id)
     return CFA_NOERR; 
 }
 
+extern int _linear_index_to_multidim(const AggregationVariable*, int, size_t*);
+
+int cfa_netcdf_read1_frag(const int nc_id, 
+                          const int cfa_id, const int cfa_var_id, 
+                          Fragment *frag)
+{
+    /* get the variable pointer */
+    AggregationVariable *agg_var = NULL;
+    int err = cfa_get_var(cfa_id, cfa_var_id, &agg_var);
+    CFA_CHECK(err);
+
+    /* temporary pointer to memory */
+    char* instr_str = NULL;
+
+    /* create the array to get the fragment indices in and convert the
+    linear index to a multidimension index */
+    size_t frag_index[MAX_DIMS];
+    int cfa_err = _linear_index_to_multidim(agg_var, frag->linear_index,
+                                            frag_index);
+    CFA_CHECK(cfa_err);
+
+    /* create the memory for the fragment index */
+    size_t size = sizeof(size_t) * agg_var->cfa_ndim;
+    if (frag->index == NULL)
+        frag->index = cfa_malloc(size);
+    /* copy the frag location - this is a single index into each 
+    FragmentDimension */
+    memcpy(frag->index, frag_index, size);
+
+    /* now parse all the fragment information from the netCDF file to the 
+    Fragment Structure */
+    int frag_var_id;    /* variable and group ids for the variable containing */
+    int frag_grp_id;    /* the fragment info */
+    /* Read location */
+    if (agg_var->cfa_instructionsp->location)
+    {
+        cfa_err = _get_nc_grp_var_ids_from_str(nc_id,
+                    agg_var->cfa_instructionsp->location,
+                    &frag_grp_id, &frag_var_id);
+        CFA_CHECK(cfa_err);
+        /* is it scalar? */
+        if (agg_var->cfa_instructionsp->location_scalar)
+        {
+            /* location is different */
+        }
+        else
+        {
+            /* location is different */
+        }
+    }
+    /* Read file */
+    if (agg_var->cfa_instructionsp->file)
+    {
+        /* Free the string if already assigned */
+        if (frag->file != NULL) cfa_free(frag->file, strlen(frag->file)+1);
+
+        cfa_err = _get_nc_grp_var_ids_from_str(nc_id,
+                    agg_var->cfa_instructionsp->file,
+                    &frag_grp_id, &frag_var_id);
+        CFA_CHECK(cfa_err);
+        /* read the file into temporary string */
+        cfa_err = nc_get_var1_string(frag_grp_id, frag_var_id, 
+                                     frag->index, &instr_str);
+        CFA_CHECK(cfa_err);
+        /* missing value if strlen = 0 */
+        if (strlen(instr_str) != 0)
+        {
+            frag->file = cfa_malloc(strlen(instr_str)+1);
+            strcpy(frag->file, instr_str);
+        }
+        else
+            frag->file = NULL;
+        free(instr_str);
+    }
+    /* Read format */
+    if (agg_var->cfa_instructionsp->format)
+    {
+        if (frag->format != NULL) cfa_free(frag->format, strlen(frag->format)+1);
+
+        cfa_err = _get_nc_grp_var_ids_from_str(nc_id,
+                    agg_var->cfa_instructionsp->format,
+                    &frag_grp_id, &frag_var_id);
+        CFA_CHECK(cfa_err);
+        /* is it scalar? */
+        if (agg_var->cfa_instructionsp->format_scalar)
+        {
+            size_t scale_var[1] = {0};
+            cfa_err = nc_get_var1_string(frag_grp_id, frag_var_id, 
+                                         scale_var, &instr_str);
+            CFA_CHECK(cfa_err);
+        }
+        else
+        {
+            cfa_err = nc_get_var1_string(frag_grp_id, frag_var_id, 
+                                         frag->index, &instr_str);
+            CFA_CHECK(cfa_err);
+        }
+        /* check for missing value - strlen = 0 */
+        if (strlen(instr_str) != 0)
+        {
+            frag->format = cfa_malloc(strlen(instr_str)+1);
+            strcpy(frag->format, instr_str);
+        }
+        else
+            frag->format = NULL;
+        free(instr_str);
+    }
+    /* Read address */
+    if (agg_var->cfa_instructionsp->address)
+    {
+        if (frag->address != NULL) cfa_free(frag->address, strlen(frag->address)+1);
+
+        cfa_err = _get_nc_grp_var_ids_from_str(nc_id,
+                    agg_var->cfa_instructionsp->address,
+                    &frag_grp_id, &frag_var_id);
+        CFA_CHECK(cfa_err);
+        /* read the file into temporary string */
+        cfa_err = nc_get_var1_string(frag_grp_id, frag_var_id, 
+                                     frag->index, &instr_str);
+        CFA_CHECK(cfa_err);
+        /* check for missing value - strlen = 0 */
+        if (strlen(instr_str) != 0)
+        {
+            frag->address = cfa_malloc(strlen(instr_str)+1);
+            strcpy(frag->address, instr_str);
+        }
+        else
+            frag->address = NULL;
+        free(instr_str);
+    }
+    return CFA_NOERR;
+}
+
 /*
 load and parse a CFA-netCDF file
 */
@@ -467,11 +662,13 @@ parse_cfa_netcdf_file(const char *path, int *cfa_idp)
     /* enter the recursive parser with the root group / container */
     err = _parse_cfa_container_netcdf(ncid, *cfa_idp);
     CFA_CHECK(err);
-
-    /* close the file */
-    err = nc_close(ncid);
-    CFA_CHECK(err);
     
+    /* get the root aggregation container and add the external id to it */
+    AggregationContainer *agg_cont = NULL;
+    err = cfa_get(*cfa_idp, &agg_cont);
+    CFA_CHECK(err);
+    agg_cont->x_id = ncid;
+
     return CFA_NOERR;
 }
 
@@ -671,7 +868,7 @@ _serialise_cfa_fragvar_netcdf(const int nc_id,
     CFA_CHECK(err);
 
     /* get the netCDF dimension ids for the FragmentDimensions */
-    static int nc_fragdimids[MAX_DIMS];
+    int nc_fragdimids[MAX_DIMS];
     FragmentDimension *frag_dim = NULL;
 
     nc_type nc_dtype = -1;
@@ -786,7 +983,7 @@ cfa_netcdf_write1_frag(const int nc_id,
         CFA_CHECK(cfa_err);
         /* format can be a scalar */
         if (agg_var->cfa_instructionsp->format_scalar)
-            cfa_err = nc_put_var1_string(grp_id, var_id, frag->index,
+            cfa_err = nc_put_var1_string(grp_id, var_id, 0,
                                          (const char**)(&(frag->format)));
         else
             cfa_err = nc_put_var1_string(grp_id, var_id, frag->index,
@@ -813,7 +1010,6 @@ cfa_netcdf_write1_frag(const int nc_id,
 write out the location variable - this is a special case as it contains the
 spans of the fragments in a 2-D array
 */
-
 int
 _write_cfa_fragloc_netcdf(const int loc_grpid, 
                           const int cfa_id, const int cfa_varid)

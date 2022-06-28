@@ -13,7 +13,11 @@
             "targetArchitecture": "x64",
             "osx": {
                 "MIMode": "lldb"
-            },  
+            },
+            "linux": {
+                "environment": [{"name" : "LD_LIBRARY_PATH",
+                "value" : "$LD_LIBRARY_PATH:../CFA-C/lib"}]
+            },
             "preLaunchTask": "build_test_cfa"
         },
 
@@ -26,7 +30,11 @@
             "targetArchitecture": "x64",
             "osx": {
                 "MIMode": "lldb"
-            },  
+            },
+            "linux": {
+                "environment": [{"name" : "LD_LIBRARY_PATH",
+                "value" : "$LD_LIBRARY_PATH:../CFA-C/lib"}]
+            },
             "preLaunchTask": "build_test_cfa_dim"
         },
 
@@ -39,7 +47,11 @@
             "targetArchitecture": "x64",
             "osx": {
                 "MIMode": "lldb"
-            },  
+            },
+            "linux": {
+                "environment": [{"name" : "LD_LIBRARY_PATH",
+                "value" : "$LD_LIBRARY_PATH:../CFA-C/lib"}]
+            },
             "preLaunchTask": "build_test_cfa_mem"
         },
 
@@ -52,7 +64,11 @@
             "targetArchitecture": "x64",
             "osx": {
                 "MIMode": "lldb"
-            },  
+            },
+            "linux": {
+                "environment": [{"name" : "LD_LIBRARY_PATH",
+                "value" : "$LD_LIBRARY_PATH:../CFA-C/lib"}]
+            },
             "preLaunchTask": "build_test_cfa_var"
         },
 
@@ -65,7 +81,11 @@
             "targetArchitecture": "x64",
             "osx": {
                 "MIMode": "lldb"
-            },  
+            },
+            "linux": {
+                "environment": [{"name" : "LD_LIBRARY_PATH",
+                "value" : "$LD_LIBRARY_PATH:../CFA-C/lib"}]
+            },
             "preLaunchTask": "build_test_cfa_cont"
         },
         {
@@ -78,7 +98,11 @@
             "targetArchitecture": "x64",
             "osx": {
                 "MIMode": "lldb"
-            },  
+            },
+            "linux": {
+                "environment": [{"name" : "LD_LIBRARY_PATH",
+                "value" : "$LD_LIBRARY_PATH:../CFA-C/lib"}]
+            },
             "preLaunchTask": "build_example1"
         },
         {
@@ -92,6 +116,10 @@
             "osx": {
                 "MIMode": "lldb"
             },  
+            "linux": {
+                "environment": [{"name" : "LD_LIBRARY_PATH",
+                "value" : "$LD_LIBRARY_PATH:../CFA-C/lib"}]
+            },
             "preLaunchTask": "build_example1"
         },
         {
@@ -104,6 +132,10 @@
             "osx": {
                 "MIMode": "lldb"
             },  
+            "linux": {
+                "environment": [{"name" : "LD_LIBRARY_PATH",
+                "value" : "$LD_LIBRARY_PATH:../CFA-C/lib"}]
+            },
             "preLaunchTask": "build_example2"
         },
         {
@@ -117,6 +149,10 @@
             "osx": {
                 "MIMode": "lldb"
             },  
+            "linux": {
+                "environment": [{"name" : "LD_LIBRARY_PATH",
+                "value" : "$LD_LIBRARY_PATH:../CFA-C/lib"}]
+            },
             "preLaunchTask": "build_example3"
         },
         {
@@ -130,6 +166,10 @@
             "osx": {
                 "MIMode": "lldb"
             },  
+            "linux": {
+                "environment": [{"name" : "LD_LIBRARY_PATH",
+                "value" : "$LD_LIBRARY_PATH:../CFA-C/lib"}]
+            },
             "preLaunchTask": "build_example3"
         },
     ]
