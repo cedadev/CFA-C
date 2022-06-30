@@ -383,11 +383,8 @@ _parse_cfa_aggregation_instructions(const int ncid, const int ncvarid,
     {
         /* determine whether this is a scalar variable or not
         for the location and format variables */
-        char var_name[STR_LENGTH] = "";
-        err = _get_var_name_from_str(value, var_name);
-        CFA_CHECK(err);
-        if (strcmp(var_name, "location") == 0 ||
-            strcmp(var_name, "format") == 0)
+        if (strcmp(key, "location") == 0 ||
+            strcmp(key, "format") == 0)
         {
             err = _get_nc_grp_var_ids_from_str(ncid, value, 
                                                &nc_grpid, &nc_varid);
@@ -508,11 +505,119 @@ _parse_cfa_container_netcdf(int ncid, int cfa_id)
     return CFA_NOERR; 
 }
 
+int _read_scalar_location(const int nc_id, const int nc_var_id,
+                          Fragment *frag)
+{
+    /* just one element for scalar */
+    size_t size = 1;
+    if (frag->location == NULL) 
+        frag->location = cfa_malloc(size);
+
+    /* just one data point if scalar */
+    size_t scale_var[1] = {0};
+    int frag_loc = -1;
+    int cfa_err = nc_get_var1_int(nc_id, nc_var_id, scale_var, &frag_loc);
+    *(frag->location) = (size_t)(frag_loc);
+    CFA_CHECK(cfa_err);
+    return CFA_NOERR;
+}
+
+#ifndef FAST_INDEX
+int _read_indexed_location(int frag_grp_id, int frag_var_id,
+                           AggregationVariable* agg_var,
+                           Fragment* frag)
+{
+    /* read the fragment locations from an index into the Fragment array */
+    /* this is the "slow" method, which allows fragments to have different 
+       spans in their location variable */
+    size_t span_size = (sizeof(size_t) << 1) * agg_var->cfa_ndim;
+    if (frag->location == NULL)
+        frag->location = cfa_malloc(span_size);
+
+    /* start and count - these are 2D arrays, for i and j coordinates 
+       start : i = dimension number
+               j = 0
+       count : i = 1 
+               j = index of fragment in this dimension + 1
+    */
+    size_t startp[2] = {0,0};
+    size_t countp[2] = {1,0};
+    /* get max index to create the memory to read the spans into */
+    size_t max_index = 0;
+    for (int d=0; d<(agg_var->cfa_ndim); d++)
+    {
+        if (frag->index[d] > max_index)
+            max_index = frag->index[d];
+    }
+    /* allocate the memory to store the max span length */
+    int* spans = cfa_malloc(sizeof(int) * (max_index+1));
+
+    for (int d=0; d<(agg_var->cfa_ndim); d++)
+    {
+        startp[0] = d;
+        countp[1] = frag->index[d] + 1;
+        int cfa_err = nc_get_vara_int(frag_grp_id, frag_var_id, 
+                                      startp, countp, spans);
+        CFA_CHECK(cfa_err);
+        /* the start location is the spans upto the index */
+        int i = d<<1;
+        frag->location[i] = 0;
+        for (size_t s=0; s<frag->index[d]; s++)
+            frag->location[i] += spans[s];
+        /* the end location is the start location plus the span at the index */
+        frag->location[i+1] = frag->location[i] + spans[frag->index[d]];
+    }
+    cfa_free(spans, sizeof(int) * (max_index+1));
+    
+    return CFA_NOERR;
+}
+#else
+int _read_indexed_location(int cfa_id, int cfa_var_id,
+                           AggregationVariable* agg_var,
+                           Fragment* frag)
+{
+    /* read the fragment locations from an index into the Fragment array */
+    /* this is the "fast" method, which just uses the index multiplied by
+    the cfa dimension length divided by the number of fragments */
+    size_t span_size = (sizeof(size_t) << 1) * agg_var->cfa_ndim;
+    if (frag->location == NULL)
+        frag->location = cfa_malloc(span_size);
+
+    AggregatedDimension *agg_dim = NULL;
+    FragmentDimension *frag_dim = NULL;
+    int err = CFA_NOERR;
+    for (int d=0; d<(agg_var->cfa_ndim); d++)
+    {
+        /* get the span by dividing the dimension length by the fragment 
+        dimension length */
+        err = cfa_get_dim(cfa_id, agg_var->cfa_dim_idp[d], &agg_dim);
+        CFA_CHECK(err);
+        err = cfa_var_get_frag_dim(cfa_id, cfa_var_id, d, &frag_dim);
+        CFA_CHECK(err);
+        int span = agg_dim->length / frag_dim->length;
+        /* calculate the locations */
+        int i = d << 1;
+        /* first location */
+        frag->location[i] = frag->index[d] * span;
+
+        /* special case for odd agg_dim->length */
+        if (agg_dim->length % 2 != 0 && 
+            frag->index[d] == (size_t)(frag_dim->length-1) &&
+            frag_dim->length !=1)
+            span ++;
+        /* last location */
+        frag->location[i+1] = frag->location[i] + span;
+    }
+    return CFA_NOERR;
+}
+#endif
+
 extern int _linear_index_to_multidim(const AggregationVariable*, int, size_t*);
 
-int cfa_netcdf_read1_frag(const int nc_id, 
-                          const int cfa_id, const int cfa_var_id, 
-                          Fragment *frag)
+int 
+cfa_netcdf_read1_frag(const int nc_id, 
+                      const int cfa_id, const int cfa_var_id, 
+                      Fragment *frag)
 {
     /* get the variable pointer */
     AggregationVariable *agg_var = NULL;
@@ -551,11 +656,19 @@ int cfa_netcdf_read1_frag(const int nc_id,
         /* is it scalar? */
         if (agg_var->cfa_instructionsp->location_scalar)
         {
-            /* location is different */
+            cfa_err = _read_scalar_location(frag_grp_id, frag_var_id, frag);
+            CFA_CHECK(cfa_err);
         }
         else
         {
-            /* location is different */
+#ifndef FAST_INDEX
+            cfa_err = _read_indexed_location(frag_grp_id, frag_var_id, 
+                                             agg_var, frag);
+#else
+            cfa_err = _read_indexed_location(cfa_id, cfa_var_id, 
+                                             agg_var, frag);
+#endif
+            CFA_CHECK(cfa_err);
         }
     }
     /* Read file */
@@ -1030,6 +1143,7 @@ _write_cfa_fragloc_netcdf(const int loc_grpid,
     
     err = nc_inq_varid(loc_grpid, agg_var_name, &nc_varid);
     CFA_CHECK(err);
+
     /* loop over each dimension */
     AggregatedDimension *agg_dim = NULL;
     FragmentDimension *frag_dim = NULL;

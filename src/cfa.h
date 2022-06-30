@@ -131,11 +131,12 @@ typedef enum {
     CFA_NETCDF=0
 } CFAFileFormat;
 
-/* AggregationContainer */
 #define MAX_VARS 256
 #define MAX_DIMS 256
 #define MAX_CONTS 256
+#define FAST_INDEX
 
+/* AggregationContainer */
 typedef struct AggregationContainer AggregationContainer;
 struct AggregationContainer {
     /* var ids <AggregationVariable> */
