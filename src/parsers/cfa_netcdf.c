@@ -124,6 +124,24 @@ _get_var_name_from_str(const char *in_str, char *out_var_name)
     return CFA_NOERR;
 }
 
+/* 
+get the root group from any group id
+*/
+int 
+_get_root_grp_id(const int nc_id, int *root_grp_id)
+{
+    int cfa_err = CFA_NOERR;
+    int c_grp = -1;
+    *root_grp_id = nc_id;
+    while (cfa_err == CFA_NOERR)
+    {
+        cfa_err = nc_inq_grp_parent(*root_grp_id, &c_grp);
+        if (cfa_err == CFA_NOERR)
+            *root_grp_id = c_grp;
+    }
+    return CFA_NOERR;
+}
+
 /*
 get a netcdf group id from a string
 */
@@ -136,8 +154,12 @@ _get_nc_grp_id_from_str(const int nc_id, const char *in_str, int *ret_grp_id)
     char grpname[STR_LENGTH] = "";
     int orig_str_len = strlen(in_str);
     int strpos = 0;
-    int pgrp_id = nc_id;
+    int pgrp_id = -1;
     int cfa_err = CFA_NOERR;
+
+    /* get the root group to start the search from */
+    cfa_err = _get_root_grp_id(nc_id, &pgrp_id);
+    CFA_CHECK(cfa_err);
 
     while(strpos < orig_str_len)
     {
@@ -990,13 +1012,13 @@ _serialise_cfa_fragvar_netcdf(const int nc_id,
     CFA_CHECK(err);
 
     /* check whether Aggregation Instruction is a scalar */
-    int scalar = 0;
+    bool scalar = false;
     if (strcmp(agg_inst_name, "format") == 0 && 
         agg_var->cfa_instructionsp->format_scalar != 0)
-        scalar = 1;
+        scalar = true;
     if (strcmp(agg_inst_name, "location") == 0 &&
-        agg_var->cfa_instructionsp->location_scalar != 0)
-        scalar = 1;
+        agg_var->cfa_instructionsp->location_scalar)
+        scalar = true;
 
     /* get the actual name of the variable, outside of the group */
     char agg_var_name[STR_LENGTH] = "";

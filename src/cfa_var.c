@@ -73,7 +73,7 @@ cfa_def_var(int cfa_id, const char *name, const cfa_type vtype,
     var_node->cfa_datap->cfa_fragmentsp = NULL;
 
     /* no fragments defined yet */
-    var_node->cfa_frag_dim_idp = NULL;
+    var_node->cfa_frag_dim_idp[0] = -1;
     
     /* write back the cfa_var_id */
     *cfa_var_idp = cfa_nvar - 1;
@@ -116,9 +116,6 @@ int cfa_var_def_dims(const int cfa_id, const int cfa_var_id,
 
     /* assign the number of dimensions and copy the dimension array */
     agg_var->cfa_ndim = ndims;
-    agg_var->cfa_dim_idp = (int*) cfa_malloc(sizeof(int) * ndims);
-    if (!(agg_var->cfa_dim_idp))
-        return CFA_MEM_ERR;
     memcpy(agg_var->cfa_dim_idp, cfa_dim_idsp, sizeof(int) * ndims);
 
     return CFA_NOERR;
@@ -129,7 +126,7 @@ int cfa_var_def_dims(const int cfa_id, const int cfa_var_id,
 int 
 cfa_var_def_agg_instr(const int cfa_id, const int cfa_var_id,
                       const char* instruction,
-                      const char* value, const int scalar_location)
+                      const char* value, const bool scalar_location)
 {
     /* get the CFA AggregationVariable */
     AggregationVariable *agg_var;
@@ -225,9 +222,6 @@ _create_fragment_dimensions(int cfa_id, AggregationVariable *agg_varp,
     AggregatedDimension *agg_dimp = NULL;
     int cfa_nfragdim = 0;
 
-    /* create the array to hold the FragmentDimension ids */
-    agg_varp->cfa_frag_dim_idp = cfa_malloc(sizeof(int) * agg_varp->cfa_ndim);
-
     /* keep a track of the total number of Fragments defined */
     size_t n_total_frags = 1;
 
@@ -295,7 +289,7 @@ cfa_var_def_frag_num(const int cfa_id, const int cfa_var_id,
     CFA_CHECK(cfa_err);
 
     /* check if FragmentDimensions already defined */
-    if (agg_varp->cfa_frag_dim_idp)
+    if (agg_varp->cfa_frag_dim_idp[0] != -1)
         return CFA_VAR_FRAGS_DEF;
 
     /* create the fragment dimensions */
@@ -432,7 +426,7 @@ cfa_var_get_frag_dim(const int cfa_id, const int cfa_var_id,
     int cfa_err = cfa_get_var(cfa_id, cfa_var_id, &agg_var);
     CFA_CHECK(cfa_err);
     /* check FragDim array created */
-    if (!(agg_var->cfa_frag_dim_idp))
+    if (agg_var->cfa_frag_dim_idp[0] == -1)
         return CFA_VAR_FRAGS_UNDEF;
     /* check that dimn is less than the number of dimensions */
     if (dimn >= agg_var->cfa_ndim)
@@ -894,7 +888,7 @@ _cfa_free_fragments(AggregationVariable *agg_var)
     }
 
     /* also free the FragmentDimensions, if defined */
-    if (agg_var->cfa_frag_dim_idp)
+    if (agg_var->cfa_frag_dim_idp[0] != - 1)
     {
         FragmentDimension *frag_dim = NULL;
         for (int d=0; d<agg_var->cfa_ndim; d++)
@@ -909,8 +903,6 @@ _cfa_free_fragments(AggregationVariable *agg_var)
                 frag_dim->name = NULL;
             }
         }
-        /* free the array containing the ids of the FragmentDimensions*/
-        cfa_free(agg_var->cfa_frag_dim_idp, sizeof(int) * agg_var->cfa_ndim);
     }
     return cfa_err;
 }
@@ -936,11 +928,8 @@ cfa_free_vars(const int cfa_id)
             cfa_free(agg_var->name, strlen(agg_var->name)+1);
             agg_var->name = NULL;
         }
-        if (agg_var->cfa_dim_idp && agg_var->cfa_ndim > 0)
-        {
-            cfa_free(agg_var->cfa_dim_idp, sizeof(int) * agg_var->cfa_ndim);
-            agg_var->cfa_dim_idp = NULL;
-        }
+        if (agg_var->cfa_dim_idp[0] != -1)
+            agg_var->cfa_dim_idp[0] = -1;
         cfa_err = _cfa_free_agg_instructions(agg_var);
         CFA_CHECK(cfa_err);
         cfa_err = _cfa_free_fragments(agg_var);

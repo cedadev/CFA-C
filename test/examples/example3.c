@@ -5,7 +5,8 @@
 
 #include "cfa.h"
 
-const char* example3_path = "examples/test/example3.nc";
+//const char* example3_path = "examples/test/example3.nc";
+const char* example3_path = "examples/example3_extended.nc";
 
 int
 example3_save(void)

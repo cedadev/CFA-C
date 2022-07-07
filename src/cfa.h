@@ -2,6 +2,7 @@
 #define __CFA_H__
 
 #include <stdio.h>
+#include <stdbool.h>
 
 #include "cfa_mem.h"
 
@@ -47,14 +48,22 @@ the file */
 "aggregated_data" attribute */
 #define CFA_AGG_DIM_ERR            (-550) /* Something went wrong parsing the "aggregated_dimensions" attribute */
 #define CFA_AGG_NOT_DEFINED        (-551) /* aggregation instructions have not been defined */
-#define CFA_AGG_NOT_RECOGNISED     (-552) /* unrecognised aggregation instruction
-*/
+#define CFA_AGG_NOT_RECOGNISED     (-552) /* unrecognised aggregation instruction*/
+
 /* CFA metadata identifier string */
 #define CFA_CONVENTION ("CFA-")
 #define CFA_VERSION    ("0.6")
 #define CONVENTIONS    ("Conventions")
 #define AGGREGATED_DIMENSIONS ("aggregated_dimensions")
 #define AGGREGATED_DATA ("aggregated_data")
+
+/* Fixed size of arrays */
+#define MAX_VARS 256
+#define MAX_DIMS 256
+#define MAX_CONTS 256
+
+/* Fast / naive indexing */
+#define FAST_INDEX
 
 /* cfa_type is just an int */
 typedef int cfa_type;
@@ -92,10 +101,10 @@ typedef struct {
 /* AggregationInstructions */
 typedef struct {
     char *location;
-    int location_scalar;
+    bool location_scalar;
     char *file;
     char *format;
-    int format_scalar;
+    bool format_scalar;
     char *address;
 } AggregationInstructions;
 
@@ -117,9 +126,9 @@ typedef struct {
     char *name;
     /* dim ids <int> */
     int cfa_ndim;
-    int *cfa_dim_idp;
+    int cfa_dim_idp[MAX_DIMS];
     /* fragment dimension ids */
-    int *cfa_frag_dim_idp;
+    int cfa_frag_dim_idp[MAX_DIMS];
     DataType cfa_dtype;
     AggregatedData *cfa_datap;
     AggregationInstructions *cfa_instructionsp;
@@ -130,11 +139,6 @@ typedef enum {
     CFA_UNKNOWN=-1,
     CFA_NETCDF=0
 } CFAFileFormat;
-
-#define MAX_VARS 256
-#define MAX_DIMS 256
-#define MAX_CONTS 256
-#define FAST_INDEX
 
 /* AggregationContainer */
 typedef struct AggregationContainer AggregationContainer;
@@ -233,7 +237,7 @@ extern int cfa_var_def_dims(const int cfa_id, const int cfa_var_id,
    location or format may be scalar */
 extern int cfa_var_def_agg_instr(const int cfa_id, const int cfa_var_id,
                                  const char *instruction,
-                                 const char *value, const int scalar_location);
+                                 const char *value, const bool scalar_location);
 
 /* get the identifier of an AggregationVariable by name */
 extern int cfa_inq_var_id(const int cfa_id, const char *name, 

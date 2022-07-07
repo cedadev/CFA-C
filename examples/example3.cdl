@@ -24,10 +24,7 @@ netcdf {
       temp:units = "K" ;
       temp:cell_methods = "time: mean" ;
       temp:aggregated_dimensions = "time level latitude longitude" ;
-      temp:aggregated_data = "location: /aggregation/location
-                              file: /aggregation/file
-                              format: /aggregation/format
-                              address: /aggregation/address" ;
+      temp:aggregated_data = "location: /aggregation/location file: /aggregation/file format: /aggregation/format address: /aggregation/address" ;
     // Coordinate variables
     double time(time) ;
       time:standard_name = "time" ;
