@@ -275,7 +275,7 @@ extern int cfa_var_put1_frag(const int cfa_id, const int cfa_var_id,
 extern int cfa_var_get1_frag(const int cfa_id, const int cfa_var_id,
                              const size_t *frag_location,
                              const size_t *data_location,
-                             const Fragment **ret_frag);
+                             Fragment **ret_frag);
 
 /* info / output command - output the structure of a container, including the
 dimensions, variables and any sub-containers
