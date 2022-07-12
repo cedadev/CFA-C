@@ -41,10 +41,13 @@ cfa_def_cont(const int cfa_id, const char* name, int *cfa_cont_idp)
     cont_node->n_dims = 0;
     cont_node->n_conts = 0;
 
+    /* set the serialised to false and external id to -1*/
+    cont_node->serialised = 0;
+    cont_node->x_id = -1;
+
     /* get the identifier as the last node of the container array */
     int cfa_ncont = 0;
     cfa_err = get_array_length(&cfa_conts, &cfa_ncont);
-    printf("%i\n", cfa_ncont);
     CFA_CHECK(cfa_err);
     *cfa_cont_idp = cfa_ncont-1;
 
