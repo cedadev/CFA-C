@@ -759,7 +759,7 @@ extern int cfa_netcdf_read1_frag(const int, const int, const int,
 extern int cfa_var_get1_frag(const int cfa_id, const int cfa_var_id,
                              const size_t *frag_location,
                              const size_t *data_location,
-                             const Fragment **ret_frag)
+                             Fragment **ret_frag)
 {
     /* get the variable */
     AggregationVariable *agg_var = NULL;
@@ -795,6 +795,7 @@ extern int cfa_var_get1_frag(const int cfa_id, const int cfa_var_id,
                 cfa_err = cfa_netcdf_read1_frag(agg_cont->x_id, cfa_id, 
                                                 cfa_var_id, frag);
                 CFA_CHECK(cfa_err);
+                *ret_frag = frag;
             break;
             case CFA_UNKNOWN:
             default:

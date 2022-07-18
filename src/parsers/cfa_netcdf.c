@@ -503,6 +503,11 @@ _parse_cfa_container_netcdf(int ncid, int cfa_id)
         CFA_CHECK(err);
         err = _parse_cfa_container_netcdf(grp_idp[g], cfa_cont_id);
         CFA_CHECK(err);
+        /* assign the external id */
+        AggregationContainer *agg_cont = NULL;
+        err = cfa_get(cfa_cont_id, &agg_cont);
+        CFA_CHECK(err);
+        agg_cont->x_id = grp_idp[g];
     }
 
     /* parse the variables in the group */
