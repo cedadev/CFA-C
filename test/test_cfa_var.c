@@ -17,15 +17,15 @@ create_variable(const int cfa_id)
     int cfa_var_id = -1;
 
     /* create the variable */
-    cfa_err = cfa_def_var(cfa_id, "tas", &cfa_var_id);
+    cfa_err = cfa_def_var(cfa_id, "tas", CFA_FLOAT, &cfa_var_id);
     assert(cfa_err == CFA_NOERR);
 
     /* now create the dimensions */
-    cfa_err = cfa_def_dim(cfa_id, "latitude", 16, &cfa_lat_id);
+    cfa_err = cfa_def_dim(cfa_id, "latitude", 16, CFA_FLOAT, &cfa_lat_id);
     assert(cfa_err == CFA_NOERR);
-    cfa_err = cfa_def_dim(cfa_id, "longitude", 16, &cfa_lon_id);
+    cfa_err = cfa_def_dim(cfa_id, "longitude", 16, CFA_FLOAT, &cfa_lon_id);
     assert(cfa_err == CFA_NOERR);
-    cfa_err = cfa_def_dim(cfa_id, "time", 32, &cfa_t_id);
+    cfa_err = cfa_def_dim(cfa_id, "time", 32, CFA_FLOAT, &cfa_t_id);
     assert(cfa_err == CFA_NOERR);
 
     /* add the dimensions to the variable */
@@ -45,12 +45,12 @@ test_cfa_def_var(void)
     int cfa_tas_id = -1;
 
     /* first create the AggregationContainer */
-    cfa_err = cfa_create(test_file_path, &cfa_file_id);
+    cfa_err = cfa_create(test_file_path, CFA_NETCDF, &cfa_file_id);
     assert(cfa_err == CFA_NOERR);  
 
     /* attempt to create a variable before creating any dimensions */
     int dim_ids_1[1] = {0};
-    cfa_err = cfa_def_var(cfa_file_id, var_name, &cfa_tas_id);
+    cfa_err = cfa_def_var(cfa_file_id, var_name, CFA_FLOAT, &cfa_tas_id);
     cfa_err = cfa_var_def_dims(cfa_file_id, cfa_tas_id, 1, dim_ids_1);
     assert(cfa_err == CFA_DIM_NOT_FOUND_ERR);
     /* create the variable */
@@ -72,7 +72,7 @@ test_cfa_inq_var_id(void)
     int cfa_var_n = -1;
 
      /* create container */
-    cfa_err = cfa_create(test_file_path, &cfa_id);
+    cfa_err = cfa_create(test_file_path, CFA_NETCDF, &cfa_id);
     assert(cfa_err == CFA_NOERR);
 
     /* get a variable id without having created one */
@@ -105,7 +105,7 @@ test_cfa_inq_nvars(void)
     int cfa_var_n = -1;
  
     /* create the container */
-    cfa_err = cfa_create(test_file_path, &cfa_id);
+    cfa_err = cfa_create(test_file_path, CFA_NETCDF, &cfa_id);
     assert(cfa_err == CFA_NOERR);
 
     /* get the number of variables before adding any */
@@ -136,7 +136,7 @@ test_cfa_get_var(void)
     int cfa_var_id = -1;
 
     /* create the container */
-    cfa_err = cfa_create(test_file_path, &cfa_id);
+    cfa_err = cfa_create(test_file_path, CFA_NETCDF, &cfa_id);
     assert(cfa_err == CFA_NOERR);
 
     /* try to get a variable before creating it */

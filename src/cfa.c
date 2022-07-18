@@ -210,6 +210,25 @@ int cfa_close(const int cfa_id)
     int cfa_err = cfa_get(cfa_id, &(cfa_node));
     /* check that it is valid */
     CFA_CHECK(cfa_err);
+
+    /* close the file */
+    switch (cfa_node->format)
+    {
+        case CFA_UNKNOWN:
+            return CFA_UNKNOWN_FILE_FORMAT;
+        break;
+        case CFA_NETCDF:
+            if (cfa_node->x_id != -1)
+            {
+                cfa_err = close_cfa_netcdf_file(cfa_node->x_id);
+                CFA_CHECK(cfa_err);
+                cfa_node->x_id = -1;
+            }
+        break;
+        default:
+            return CFA_UNKNOWN_FILE_FORMAT;
+    }
+
     if (cfa_node)
     {
         /* free containers */

@@ -1497,3 +1497,13 @@ serialise_cfa_netcdf_file(const int cfa_id)
 
     return CFA_NOERR;
 }
+
+/* 
+Close the cfa_netcdf file with the netCDF id ncid
+*/
+int 
+close_cfa_netcdf_file(int ncid)
+{
+    int err = nc_close(ncid);
+    CFA_CHECK(err);
+}

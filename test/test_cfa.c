@@ -12,7 +12,7 @@ test_cfa_create(void)
     int cfa_id = -1;
     int cfa_err = 1;
     int n_conts = -1;
-    cfa_err = cfa_create(test_file_path, &cfa_id);
+    cfa_err = cfa_create(test_file_path, CFA_NETCDF, &cfa_id);
     assert(cfa_err == CFA_NOERR);
     cfa_err = cfa_inq_n(&n_conts);
     assert(cfa_err == CFA_NOERR);
@@ -32,7 +32,7 @@ test_cfa_close()
     int cfa_err = 1;
     int cfa_id = 0;
     /* create */
-    cfa_err = cfa_create(test_file_path, &cfa_id);
+    cfa_err = cfa_create(test_file_path, CFA_NETCDF, &cfa_id);
     assert(cfa_err == CFA_NOERR);
     /* close */
     cfa_err = cfa_close(cfa_id);
@@ -53,7 +53,7 @@ test_cfa_inq_id(void)
     int cfa_err = 1;
     int n_conts = -1;
     /* create */
-    cfa_err = cfa_create(test_file_path, &cfa_id);
+    cfa_err = cfa_create(test_file_path, CFA_NETCDF, &cfa_id);
     assert(cfa_err == CFA_NOERR);
     cfa_err = cfa_inq_n(&n_conts);
     assert(cfa_err == CFA_NOERR);
@@ -83,7 +83,7 @@ test_cfa_get(void)
     int cfa_id = -1;
     int n_conts = -1;
     /* create */
-    cfa_err = cfa_create(test_file_path, &cfa_id);
+    cfa_err = cfa_create(test_file_path, CFA_NETCDF, &cfa_id);
     assert(cfa_err == CFA_NOERR);
     cfa_err = cfa_inq_n(&n_conts);
     assert(cfa_err == CFA_NOERR);
@@ -115,7 +115,7 @@ test_cfa_inq_n(void)
     // get the current number of files 
     cfa_err = cfa_inq_n(&n_files);
     assert(cfa_err == CFA_NOERR);
-    cfa_err = cfa_create(test_file_path, &cfa_id);
+    cfa_err = cfa_create(test_file_path, CFA_NETCDF, &cfa_id);
     assert(cfa_err == CFA_NOERR);
     cfa_err = cfa_inq_n(&n_conts);
     assert(cfa_err == CFA_NOERR);

@@ -17,7 +17,7 @@ test_cfa_def_cont(void)
     int cfa_cont_id2 = -1;
     int n_conts = 0;
     /* create a parent (file) container */
-    cfa_err = cfa_create(test_file_path, &cfa_id);
+    cfa_err = cfa_create(test_file_path, CFA_NETCDF, &cfa_id);
     assert(cfa_err == CFA_NOERR);
 
     /* create a container in the parent (file) container */
@@ -56,7 +56,7 @@ test_cfa_inq_cont_id(void)
     cfa_err = cfa_inq_cont_id(cfa_id, cont_name, &cfa_cont_id);
     assert(cfa_err == CFA_NOT_FOUND_ERR);
      /* create container */
-    cfa_err = cfa_create(test_file_path, &cfa_id);
+    cfa_err = cfa_create(test_file_path, CFA_NETCDF, &cfa_id);
     assert(cfa_err == CFA_NOERR);
     /* get a container without having created one */
     cfa_err = cfa_inq_cont_id(cfa_id, cont_name, &cfa_cont_id);
@@ -96,7 +96,7 @@ test_cfa_inq_nconts(void)
     cfa_err = cfa_inq_nconts(cfa_id, &cfa_cont_n);
     assert(cfa_err == CFA_NOT_FOUND_ERR);   
     /* create the container */
-    cfa_err = cfa_create(test_file_path, &cfa_id);
+    cfa_err = cfa_create(test_file_path, CFA_NETCDF, &cfa_id);
     assert(cfa_err == CFA_NOERR);
     /* get the number of containers before adding any */
     cfa_err = cfa_inq_nconts(cfa_id, &cfa_cont_n);
@@ -129,7 +129,7 @@ test_cfa_get_cont(void)
     cfa_err = cfa_get_cont(cfa_id, cfa_cont_id, &cfa_cont);
     assert(cfa_err == CFA_NOT_FOUND_ERR);
     /* create the container */
-    cfa_err = cfa_create(test_file_path, &cfa_id);
+    cfa_err = cfa_create(test_file_path, CFA_NETCDF, &cfa_id);
     assert(cfa_err == CFA_NOERR);
     /* try to get a container before creating it (id 0 is used by parent 
     container */

@@ -18,10 +18,10 @@ test_cfa_def_dim(void)
     int cfa_dim_n = 0;
 
     /* first create the AggregationContainer */
-    cfa_err = cfa_create(test_file_path, &cfa_id);
+    cfa_err = cfa_create(test_file_path, CFA_NETCDF, &cfa_id);
     assert(cfa_err == CFA_NOERR);
     /* now create the dimension */
-    cfa_err = cfa_def_dim(cfa_id, dim_name, len, &cfa_dim_id);
+    cfa_err = cfa_def_dim(cfa_id, dim_name, len, CFA_INT, &cfa_dim_id);
     assert(cfa_err == CFA_NOERR);
     /* check that the id is 1 less than the number of dimensions */
     cfa_err = cfa_inq_ndims(cfa_id, &cfa_dim_n);
@@ -47,13 +47,13 @@ test_cfa_inq_dim_id(void)
     cfa_err = cfa_inq_dim_id(cfa_id, dim_name, &cfa_dim_id);
     assert(cfa_err == CFA_NOT_FOUND_ERR);
      /* create container */
-    cfa_err = cfa_create(test_file_path, &cfa_id);
+    cfa_err = cfa_create(test_file_path, CFA_NETCDF, &cfa_id);
     assert(cfa_err == CFA_NOERR);
     /* get a dimension without having created one */
     cfa_err = cfa_inq_dim_id(cfa_id, dim_name, &cfa_dim_id);
     assert(cfa_err == CFA_DIM_NOT_FOUND_ERR);
     /* create dimension */
-    cfa_err = cfa_def_dim(cfa_id, dim_name, len, &cfa_dim_id);
+    cfa_err = cfa_def_dim(cfa_id, dim_name, len, CFA_INT, &cfa_dim_id);
     assert(cfa_err == CFA_NOERR);
     /* find an id, by name, that exists - this will be the length of the 
        dimension array - 1 */
@@ -85,14 +85,14 @@ test_cfa_inq_ndims(void)
     cfa_err = cfa_inq_ndims(cfa_id, &cfa_dim_n);
     assert(cfa_err == CFA_NOT_FOUND_ERR);   
     /* create the container */
-    cfa_err = cfa_create(test_file_path, &cfa_id);
+    cfa_err = cfa_create(test_file_path, CFA_NETCDF, &cfa_id);
     assert(cfa_err == CFA_NOERR);
     /* get the number of dimensions before adding any */
     cfa_err = cfa_inq_ndims(cfa_id, &cfa_dim_n);
     assert(cfa_err == CFA_NOERR);
     assert(cfa_dim_n == 0);
     /* create the dimension */
-    cfa_err = cfa_def_dim(cfa_id, dim_name, len, &cfa_dim_id);
+    cfa_err = cfa_def_dim(cfa_id, dim_name, len, CFA_INT, &cfa_dim_id);
     assert(cfa_err == CFA_NOERR);
     /* get the number of dimensions after adding one */
     cfa_err = cfa_inq_ndims(cfa_id, &cfa_dim_n);
@@ -118,13 +118,13 @@ test_cfa_get_dim(void)
     cfa_err = cfa_get_dim(cfa_id, cfa_dim_id, &cfa_dim);
     assert(cfa_err == CFA_DIM_NOT_FOUND_ERR);
     /* create the container */
-    cfa_err = cfa_create(test_file_path, &cfa_id);
+    cfa_err = cfa_create(test_file_path, CFA_NETCDF, &cfa_id);
     assert(cfa_err == CFA_NOERR);
     /* try to get a dimension before creating it */
     cfa_err = cfa_get_dim(cfa_id, 0, &cfa_dim);
     assert(cfa_err == CFA_DIM_NOT_FOUND_ERR);
     /* create the AggregatedDimension */
-    cfa_err = cfa_def_dim(cfa_id, dim_name, len, &cfa_dim_id);
+    cfa_err = cfa_def_dim(cfa_id, dim_name, len, CFA_INT, &cfa_dim_id);
     assert(cfa_err == CFA_NOERR);
     /* get the newly created AggregatedDimension */
     cfa_err = cfa_get_dim(cfa_id, cfa_dim_id, &cfa_dim);

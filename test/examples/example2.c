@@ -198,12 +198,8 @@ example2(void)
     /* output info */
     cfa_err = cfa_info(cfa_id, 0);
     CFA_ERR(cfa_err);
-    
-    /*  close the netCDF file */
-    cfa_err = nc_close(nc_id);
-    CFA_ERR(cfa_err);
 
-    /* close the CFA file */
+    /* close the CFA file (now closes netCDF file as well) */
     cfa_err = cfa_close(cfa_id);
     CFA_ERR(cfa_err);
 

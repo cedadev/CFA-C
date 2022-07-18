@@ -217,11 +217,7 @@ example3_save(void)
                                  temp2_vals);
     CFA_CHECK(cfa_err);
 
-    /*  close the netCDF file */
-    cfa_err = nc_close(nc_id);
-    CFA_ERR(cfa_err);
-
-    /* close the CFA file */
+    /* close the CFA file (closes netCDF file as well) */
     cfa_err = cfa_close(cfa_id);
     CFA_ERR(cfa_err);
 
@@ -243,9 +239,14 @@ example3_load(void)
     cfa_err = cfa_load(example3_path, CFA_NETCDF, &cfa_id);
     CFA_ERR(cfa_err);
 
+    /* get the /vargroup group */
+    int cfa_grp_id = -1;
+    cfa_err = cfa_inq_cont_id(cfa_id, "/vargroup", &cfa_grp_id);
+    CFA_ERR(cfa_err);
+
     /* get the "temp" variable id */
     int cfa_var_id = -1;
-    cfa_err = cfa_inq_var_id(cfa_id, "temp", &cfa_var_id);
+    cfa_err = cfa_inq_var_id(cfa_grp_id, "temp", &cfa_var_id);
     CFA_ERR(cfa_err);
 
     /* get the first fragment */
@@ -253,14 +254,14 @@ example3_load(void)
     frag_location[0] = 0; frag_location[1] = 0; 
     frag_location[2] = 0; frag_location[3] = 0;
     const Fragment *frag = NULL;
-    cfa_err = cfa_var_get1_frag(cfa_id, cfa_var_id, 
+    cfa_err = cfa_var_get1_frag(cfa_grp_id, cfa_var_id, 
                                 frag_location, NULL,
                                 &frag);
     CFA_ERR(cfa_err);
     /* get the second Fragment */
     frag_location[0] = 1; frag_location[1] = 0; 
     frag_location[2] = 0; frag_location[3] = 0;
-    cfa_err = cfa_var_get1_frag(cfa_id, cfa_var_id,
+    cfa_err = cfa_var_get1_frag(cfa_grp_id, cfa_var_id,
                                 frag_location, NULL,
                                 &frag);
     CFA_ERR(cfa_err);
