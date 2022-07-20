@@ -211,7 +211,7 @@ extern int cfa_var_def_dims(const int cfa_id, const int cfa_var_id,
    location or format may be scalar */
 extern int cfa_var_def_agg_instr(const int cfa_id, const int cfa_var_id,
                                  const char *instruction,
-                                 const char *value, const bool scalar_location);
+                                 const char *value, const bool scalar);
 
 /* get the identifier of an AggregationVariable by name */
 extern int cfa_inq_var_id(const int cfa_id, const char *name, 
@@ -249,7 +249,7 @@ extern int cfa_var_put1_frag(const int cfa_id, const int cfa_var_id,
 extern int cfa_var_get1_frag(const int cfa_id, const int cfa_var_id,
                              const size_t *frag_location,
                              const size_t *data_location,
-                             Fragment **ret_frag);
+                             const Fragment **ret_frag);
 
 /* info / output command - output the structure of a container, including the
 dimensions, variables and any sub-containers
