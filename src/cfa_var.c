@@ -126,7 +126,7 @@ int cfa_var_def_dims(const int cfa_id, const int cfa_var_id,
 int 
 cfa_var_def_agg_instr(const int cfa_id, const int cfa_var_id,
                       const char* instruction,
-                      const char* value, const bool scalar_location)
+                      const char* value, const bool scalar)
 {
     /* get the CFA AggregationVariable */
     AggregationVariable *agg_var;
@@ -135,7 +135,7 @@ cfa_var_def_agg_instr(const int cfa_id, const int cfa_var_id,
     if (strncmp(instruction, "location", 8) == 0)
     {
         agg_var->cfa_instructionsp->location = strdup(value);
-        agg_var->cfa_instructionsp->location_scalar = scalar_location;
+        agg_var->cfa_instructionsp->location_scalar = scalar;
     }
     else if (strncmp(instruction, "file", 4) == 0)
     {
@@ -144,7 +144,7 @@ cfa_var_def_agg_instr(const int cfa_id, const int cfa_var_id,
     else if (strncmp(instruction, "format", 6) == 0)
     {
         agg_var->cfa_instructionsp->format = strdup(value);
-        agg_var->cfa_instructionsp->format_scalar = scalar_location;
+        agg_var->cfa_instructionsp->format_scalar = scalar;
     }
     else if (strncmp(instruction, "address", 7) == 0)
     {
@@ -544,8 +544,8 @@ _data_location_to_fragment_index(const AggregationVariable *agg_var,
     /* calculate the fragment index from the data location and information in
     the aggregation variable */
     int cfa_err = 0;
-    FragmentDimension *frag_dim;
-    AggregatedDimension *agg_dim;
+    FragmentDimension *frag_dim = NULL;
+    AggregatedDimension *agg_dim = NULL;
     for (int d=0; d<agg_var->cfa_ndim; d++)
     {
         /* get the FragmentDimension for this dimension of the variable */
@@ -558,7 +558,7 @@ _data_location_to_fragment_index(const AggregationVariable *agg_var,
             &cfa_dims, agg_var->cfa_dim_idp[d], (void**)(&agg_dim)
         );
         CFA_CHECK(cfa_err);
-        frag_index[d] = (data_location[d<<1] * frag_dim->length) /
+        frag_index[d] = (data_location[d] * frag_dim->length) /
                          agg_dim->length;
     }
 
@@ -756,10 +756,11 @@ cfa_var_put1_frag(const int cfa_id, const int cfa_var_id,
 extern int cfa_netcdf_read1_frag(const int, const int, const int, 
                                  const Fragment*);
 
-extern int cfa_var_get1_frag(const int cfa_id, const int cfa_var_id,
-                             const size_t *frag_location,
-                             const size_t *data_location,
-                             Fragment **ret_frag)
+int 
+cfa_var_get1_frag(const int cfa_id, const int cfa_var_id,
+                  const size_t *frag_location,
+                  const size_t *data_location,
+                  const Fragment **ret_frag)
 {
     /* get the variable */
     AggregationVariable *agg_var = NULL;

@@ -1091,7 +1091,7 @@ cfa_netcdf_write1_frag(const int nc_id,
     /* get the cfa variable */
     AggregationVariable *agg_var;
     int cfa_err = cfa_get_var(cfa_id, cfa_varid, &agg_var);
-    CFA_ERR(cfa_err);
+    CFA_CHECK(cfa_err);
 
     int grp_id = -1;
     int var_id = -1;
@@ -1383,13 +1383,19 @@ _serialise_cfa_variable_netcdf(const int nc_id,
     err = nc_def_var(nc_id, agg_var->name, agg_var->cfa_dtype.type, 0, NULL,
                      &nc_varid);
     CFA_CHECK(err);
-    /* create the fragment variables */
-    err = _serialise_cfa_fragments_netcdf(nc_id, cfa_id, cfa_varid);
-    CFA_CHECK(err);
-    /* add the aggregation instructions */
-    err = _serialise_cfa_aggregation_instructions(nc_id, nc_varid,
-                                                  cfa_id, cfa_varid);
-    CFA_CHECK(err);
+    /* create the fragment variables if there are any */
+    if (agg_var->cfa_datap && agg_var->cfa_datap->cfa_fragmentsp)
+    {
+        err = _serialise_cfa_fragments_netcdf(nc_id, cfa_id, cfa_varid);
+        CFA_CHECK(err);
+    }
+    /* add the aggregation instructions, if they exist */
+    if (agg_var->cfa_instructionsp)
+    {
+        err = _serialise_cfa_aggregation_instructions(nc_id, nc_varid,
+                                                      cfa_id, cfa_varid);
+        CFA_CHECK(err);
+    }
   
     return CFA_NOERR;
 }
@@ -1420,8 +1426,10 @@ _serialise_cfa_container_netcdf(const int nc_id, const int cfa_id)
         /* create a netCDF group for this container */
         int nc_grpid = -1;
         err = nc_def_grp(nc_id, agg_cont->name, &nc_grpid);
+        CFA_CHECK(err);
         /* recursively serialise the container */
-        _serialise_cfa_container_netcdf(nc_grpid, cont_ids[g]);
+        err = _serialise_cfa_container_netcdf(nc_grpid, cont_ids[g]);
+        CFA_CHECK(err);
     }
     /* get the parent container */
     err = cfa_get(cfa_id, &agg_cont);
@@ -1453,7 +1461,7 @@ create_cfa_netcdf_file(const char *path, int *ncidp)
 {
     /* create the netCDF file to save the CFA info into */
     int cfa_err = nc_create(path, NC_NETCDF4|NC_CLOBBER, ncidp);
-    CFA_ERR(cfa_err);
+    CFA_CHECK(cfa_err);
     return CFA_NOERR;
 }
 
@@ -1494,7 +1502,6 @@ serialise_cfa_netcdf_file(const int cfa_id)
     err = nc_put_att_text(agg_cont->x_id, NC_GLOBAL, CONVENTIONS,
                           strlen(conventions), conventions);
     CFA_CHECK(err);
-
     return CFA_NOERR;
 }
 
@@ -1506,4 +1513,5 @@ close_cfa_netcdf_file(int ncid)
 {
     int err = nc_close(ncid);
     CFA_CHECK(err);
+    return CFA_NOERR;
 }

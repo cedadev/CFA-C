@@ -218,6 +218,13 @@ example1_load(void)
                                 frag_location, NULL,
                                 &frag);    
 
+    /* get the fragment by data location*/
+    size_t data_location[4];
+    data_location[0] = 6; data_location[1] = 0; 
+    data_location[2] = 0; data_location[3] = 0;
+    cfa_err = cfa_var_get1_frag(cfa_id, cfa_var_id, 
+                                NULL, data_location,
+                                &frag);
     /* output info */
     cfa_err = cfa_info(cfa_id, 0);
     CFA_ERR(cfa_err);
