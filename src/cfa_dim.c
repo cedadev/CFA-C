@@ -133,6 +133,8 @@ cfa_get_dim(const int cfa_id, const int cfa_dim_id,
     */
     if (!cfa_dims)
         return CFA_DIM_NOT_FOUND_ERR;
+        
+    int cfa_err = CFA_NOERR;
 
 #ifdef _DEBUG
     /* check id is in range */
@@ -146,7 +148,7 @@ cfa_get_dim(const int cfa_id, const int cfa_dim_id,
         return CFA_DIM_NOT_FOUND_ERR;
     /* check id belongs to AggregationContainer */
     AggregationContainer *agg_cont = NULL;
-    int cfa_err = cfa_get(cfa_id, &agg_cont);
+    cfa_err = cfa_get(cfa_id, &agg_cont);
     CFA_CHECK(cfa_err);
     int dim_in_cont = 0;
     for (int i=0; i<agg_cont->n_dims; i++)

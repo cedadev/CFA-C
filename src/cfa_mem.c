@@ -21,7 +21,7 @@ typedef struct DynamicArray_t
 /*
 default dynamic array size
 */
-const int DARRAY_SIZE=16;
+const int DARRAY_SIZE=32;
 
 /*
 static count of used memory, number of calls to cfa_malloc and cfa_free
