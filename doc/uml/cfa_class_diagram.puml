@@ -1,5 +1,5 @@
 @startuml cfa_class_diagram
-
+left to right direction
 class DataType #lightgrey {
     +string type
     +int size
