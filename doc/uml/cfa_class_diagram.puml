@@ -1,7 +1,7 @@
 @startuml cfa_class_diagram
 left to right direction
 class DataType #lightgrey {
-    +string type
+    +int type
     +int size
 }
 
@@ -13,19 +13,18 @@ class FragmentDimension #cyan {
 class Fragment #cyan {
     +int [] location
     -int [] index
-    +string file
-    +string format
-    +string address
-    +string units
 }
 
-class AggregationInstructions #coral {
-    +string location
-    -bool location_scalar
-    +string file
-    +string format
-    -bool format_scalar
-    +string address
+class FragmentDatum #cyan {
+    +string term
+    +void* value
+    +int size
+}
+
+class AggregationInstruction #coral {
+    +string term
+    +string value
+    +bool scalar
 }
 
 class AggregatedData #coral {
@@ -53,11 +52,13 @@ AggregationVariable "1" o--> "0..*" AggregatedDimension
 AggregationVariable "1" *--> "1" AggregatedData
 AggregatedData "1" *--> "0..*" Fragment
 Fragment "1" *--> "0..*" FragmentDimension
+Fragment "1" *--> "0..*" FragmentDatum
 AggregationVariable "1" o--o "1..*" FragmentDimension
 AggregatedDimension "1" *-> "1" DataType
-AggregationVariable "1" *--> "1" AggregationInstructions
+AggregationVariable "1" *--> "1..*" AggregationInstruction
 AggregationVariable "1" *-> "1" DataType
-Fragment "1" *-> "1" DataType
+AggregationInstruction "1" *-> "1" DataType
+FragmentDatum "1" *-> "1" DataType
 AggregationContainer "1" *--> "0..*" AggregationVariable
 AggregationContainer "1" *--> "0..*" AggregatedDimension
 AggregationContainer "1" *--> "0..*" AggregationContainer

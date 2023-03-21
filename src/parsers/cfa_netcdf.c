@@ -11,6 +11,7 @@
 #define STR_LENGTH 256
 
 extern DynamicArray *cfa_frag_dims;
+extern int _has_standard_agg_instr(const int, const int);
 
 /*
 check this is a CFA-netCDF file
@@ -337,13 +338,17 @@ _parse_cfa_fragment_dimensions(const int ncid,
     CFA_CHECK(cfa_err);
     /* we can get the number of fragments along each dimension from the 
     file variable, or from the address variable as these are never scalar */
-    if (!(cfa_var->cfa_instructionsp && cfa_var->cfa_instructionsp->file))
+    if (cfa_var->n_instr == 0)
         return CFA_VAR_NO_AGG_INSTR;
+
+    /* get the file AggregationInstruction */
+    AggregationInstruction *pinst;
+    cfa_err = cfa_var_get_agg_instr(cfa_id, cfa_var_id, "file", &pinst);
+    CFA_CHECK(cfa_err);
     int file_frag_grpid = -1;
     int file_frag_varid = -1;
     cfa_err = _get_nc_grp_var_ids_from_str(
-        ncid, cfa_var->cfa_instructionsp->file, 
-        &file_frag_grpid, &file_frag_varid
+        ncid, pinst->value, &file_frag_grpid, &file_frag_varid
     );
     CFA_CHECK(cfa_err);
 
@@ -377,7 +382,6 @@ _parse_cfa_fragment_dimensions(const int ncid,
 /*
 get the aggregation instructions from an attribute string
 */
-
 int
 _parse_cfa_aggregation_instructions(const int ncid, const int ncvarid,
                                     const int cfa_id, const int cfa_var_id)
@@ -395,7 +399,6 @@ _parse_cfa_aggregation_instructions(const int ncid, const int ncvarid,
     int scalar = 0;
 
     /* parse the "aggregated_data" attribute, getting each key:value pair */
-    int n_agg_instr = 0;
     char key[STR_LENGTH] = "";
     char value[STR_LENGTH] = "";
 
@@ -420,10 +423,8 @@ _parse_cfa_aggregation_instructions(const int ncid, const int ncvarid,
         }
 
         /* define the aggregation instructions in the cfa var */
-        err = cfa_var_def_agg_instr(cfa_id, cfa_var_id, key, value, scalar);
+        err = cfa_var_def_agg_instr(cfa_id, cfa_var_id, key, value, scalar, 0);
         CFA_CHECK(err);
-        if (!err)
-            n_agg_instr++;
         /* get the next key and value */
         c_ptr = _get_key_and_value_from_att_str(c_ptr, key, value);
     }
@@ -432,8 +433,9 @@ _parse_cfa_aggregation_instructions(const int ncid, const int ncvarid,
     err = cfa_get_var(cfa_id, cfa_var_id, &cfa_var);
     CFA_CHECK(err);
     /* check that four AggregationInstructions have been added */
-    if (n_agg_instr != 4)
-        return CFA_AGG_DATA_ERR;
+    if (!_has_standard_agg_instr(cfa_id, cfa_var_id))
+        return CFA_AGG_NOT_DEFINED;
+
     return CFA_NOERR;
 }
 
@@ -674,14 +676,15 @@ cfa_netcdf_read1_frag(const int nc_id,
     int frag_var_id;    /* variable and group ids for the variable containing */
     int frag_grp_id;    /* the fragment info */
     /* Read location */
-    if (agg_var->cfa_instructionsp->location)
+    AggregationInstruction *pinst;
+    cfa_err = cfa_var_get_agg_instr(cfa_id, cfa_var_id, "location", &pinst);
+    if (cfa_err == CFA_NOERR)
     {
-        cfa_err = _get_nc_grp_var_ids_from_str(nc_id,
-                    agg_var->cfa_instructionsp->location,
+        cfa_err = _get_nc_grp_var_ids_from_str(nc_id, pinst->value,
                     &frag_grp_id, &frag_var_id);
         CFA_CHECK(cfa_err);
         /* is it scalar? */
-        if (agg_var->cfa_instructionsp->location_scalar)
+        if (pinst->scalar)
         {
             cfa_err = _read_scalar_location(frag_grp_id, frag_var_id, frag);
             CFA_CHECK(cfa_err);
@@ -698,86 +701,88 @@ cfa_netcdf_read1_frag(const int nc_id,
             CFA_CHECK(cfa_err);
         }
     }
-    /* Read file */
-    if (agg_var->cfa_instructionsp->file)
-    {
-        /* Free the string if already assigned */
-        if (frag->file != NULL) cfa_free(frag->file, strlen(frag->file)+1);
+    // /* Read file */
+    // cfa_err = cfa_var_get_agg_instr(cfa_id, cfa_var_id, "file", &pinst);
+    // if (cfa_err == CFA_NOERR)
+    // {
+    //     /* Free the string if already assigned */
+    //     if (frag->file != NULL) 
+    //         cfa_free(frag->file, strlen(frag->file)+1);
 
-        cfa_err = _get_nc_grp_var_ids_from_str(nc_id,
-                    agg_var->cfa_instructionsp->file,
-                    &frag_grp_id, &frag_var_id);
-        CFA_CHECK(cfa_err);
-        /* read the file into temporary string */
-        cfa_err = nc_get_var1_string(frag_grp_id, frag_var_id, 
-                                     frag->index, &instr_str);
-        CFA_CHECK(cfa_err);
-        /* missing value if strlen = 0 */
-        if (strlen(instr_str) != 0)
-        {
-            frag->file = cfa_malloc(strlen(instr_str)+1);
-            strcpy(frag->file, instr_str);
-        }
-        else
-            frag->file = NULL;
-        free(instr_str);
-    }
-    /* Read format */
-    if (agg_var->cfa_instructionsp->format)
-    {
-        if (frag->format != NULL) cfa_free(frag->format, strlen(frag->format)+1);
+    //     cfa_err = _get_nc_grp_var_ids_from_str(nc_id, pinst->value,
+    //                 &frag_grp_id, &frag_var_id);
+    //     CFA_CHECK(cfa_err);
+    //     /* read the file into temporary string */
+    //     cfa_err = nc_get_var1_string(frag_grp_id, frag_var_id, 
+    //                                  frag->index, &instr_str);
+    //     CFA_CHECK(cfa_err);
+    //     /* missing value if strlen = 0 */
+    //     if (strlen(instr_str) != 0)
+    //     {
+    //         frag->file = cfa_malloc(strlen(instr_str)+1);
+    //         strcpy(frag->file, instr_str);
+    //     }
+    //     else
+    //         frag->file = NULL;
+    //     free(instr_str);
+    // }
+    // /* Read format */
+    // cfa_err = cfa_var_get_agg_instr(cfa_id, cfa_var_id, "format", &pinst);
+    // if (cfa_err == CFA_NOERR)
+    // {
+    //     if (frag->format != NULL) cfa_free(frag->format, strlen(frag->format)+1);
 
-        cfa_err = _get_nc_grp_var_ids_from_str(nc_id,
-                    agg_var->cfa_instructionsp->format,
-                    &frag_grp_id, &frag_var_id);
-        CFA_CHECK(cfa_err);
-        /* is it scalar? */
-        if (agg_var->cfa_instructionsp->format_scalar)
-        {
-            size_t scale_var[1] = {0};
-            cfa_err = nc_get_var1_string(frag_grp_id, frag_var_id, 
-                                         scale_var, &instr_str);
-            CFA_CHECK(cfa_err);
-        }
-        else
-        {
-            cfa_err = nc_get_var1_string(frag_grp_id, frag_var_id, 
-                                         frag->index, &instr_str);
-            CFA_CHECK(cfa_err);
-        }
-        /* check for missing value - strlen = 0 */
-        if (strlen(instr_str) != 0)
-        {
-            frag->format = cfa_malloc(strlen(instr_str)+1);
-            strcpy(frag->format, instr_str);
-        }
-        else
-            frag->format = NULL;
-        free(instr_str);
-    }
-    /* Read address */
-    if (agg_var->cfa_instructionsp->address)
-    {
-        if (frag->address != NULL) cfa_free(frag->address, strlen(frag->address)+1);
+    //     cfa_err = _get_nc_grp_var_ids_from_str(nc_id, pinst->value,
+    //                 &frag_grp_id, &frag_var_id);
+    //     CFA_CHECK(cfa_err);
+    //     /* is it scalar? */
+    //     if (pinst->scalar)
+    //     {
+    //         size_t scale_var[1] = {0};
+    //         cfa_err = nc_get_var1_string(frag_grp_id, frag_var_id, 
+    //                                      scale_var, &instr_str);
+    //         CFA_CHECK(cfa_err);
+    //     }
+    //     else
+    //     {
+    //         cfa_err = nc_get_var1_string(frag_grp_id, frag_var_id, 
+    //                                      frag->index, &instr_str);
+    //         CFA_CHECK(cfa_err);
+    //     }
+    //     /* check for missing value - strlen = 0 */
+    //     if (strlen(instr_str) != 0)
+    //     {
+    //         frag->format = cfa_malloc(strlen(instr_str)+1);
+    //         strcpy(frag->format, instr_str);
+    //     }
+    //     else
+    //         frag->format = NULL;
+    //     free(instr_str);
+    // }
+    // /* Read address */
+    // cfa_err = cfa_var_get_agg_instr(cfa_id, cfa_var_id, "address", &pinst);
+    // if (cfa_err == CFA_NOERR)
+    // {
+    //     if (frag->address != NULL) 
+    //         cfa_free(frag->address, strlen(frag->address)+1);
 
-        cfa_err = _get_nc_grp_var_ids_from_str(nc_id,
-                    agg_var->cfa_instructionsp->address,
-                    &frag_grp_id, &frag_var_id);
-        CFA_CHECK(cfa_err);
-        /* read the file into temporary string */
-        cfa_err = nc_get_var1_string(frag_grp_id, frag_var_id, 
-                                     frag->index, &instr_str);
-        CFA_CHECK(cfa_err);
-        /* check for missing value - strlen = 0 */
-        if (strlen(instr_str) != 0)
-        {
-            frag->address = cfa_malloc(strlen(instr_str)+1);
-            strcpy(frag->address, instr_str);
-        }
-        else
-            frag->address = NULL;
-        free(instr_str);
-    }
+    //     cfa_err = _get_nc_grp_var_ids_from_str(nc_id, pinst->value,
+    //                 &frag_grp_id, &frag_var_id);
+    //     CFA_CHECK(cfa_err);
+    //     /* read the file into temporary string */
+    //     cfa_err = nc_get_var1_string(frag_grp_id, frag_var_id, 
+    //                                  frag->index, &instr_str);
+    //     CFA_CHECK(cfa_err);
+    //     /* check for missing value - strlen = 0 */
+    //     if (strlen(instr_str) != 0)
+    //     {
+    //         frag->address = cfa_malloc(strlen(instr_str)+1);
+    //         strcpy(frag->address, instr_str);
+    //     }
+    //     else
+    //         frag->address = NULL;
+    //     free(instr_str);
+    // }
     return CFA_NOERR;
 }
 
@@ -833,7 +838,7 @@ _serialise_cfa_dimension_netcdf(const int nc_id,
     create the corresponding dimension variable - we need the data type
     */
     int nc_dimvar_id = -1;
-    err = nc_def_var(nc_id, agg_dim->name, agg_dim->cfa_dtype.type, 1,
+    err = nc_def_var(nc_id, agg_dim->name, agg_dim->type.type, 1,
                      &nc_dim_id, &nc_dimvar_id);
     CFA_CHECK(err);
     return CFA_NOERR;
@@ -963,35 +968,6 @@ _serialise_cfa_fragdims_netcdf(const int nc_id,
     return CFA_NOERR;
 }
 
-/*
-get the type of the Aggregation Instruction variable
-*/
-int
-_get_agg_inst_type(const char* agg_inst_name, nc_type *agg_inst_type)
-{
-    if (strcmp("location", agg_inst_name) == 0)
-    {
-        *agg_inst_type = NC_INT;
-        return CFA_NOERR;
-    }
-    if (strcmp("file", agg_inst_name) == 0)
-    {
-        *agg_inst_type = NC_STRING;
-        return CFA_NOERR;
-    }
-    if (strcmp("address", agg_inst_name) == 0)
-    {
-        *agg_inst_type = NC_STRING;
-        return CFA_NOERR;
-    }
-    if (strcmp("format", agg_inst_name) == 0)
-    {
-        *agg_inst_type = NC_STRING;
-        return CFA_NOERR;
-    }
-    return CFA_AGG_NOT_RECOGNISED;
-}
-
 /* 
 write out a netCDF variable to store the information for one part of a 
 fragment, i.e. for the location, file, format or address 
@@ -1011,29 +987,20 @@ _serialise_cfa_fragvar_netcdf(const int nc_id,
     int nc_fragdimids[MAX_DIMS];
     FragmentDimension *frag_dim = NULL;
 
-    nc_type nc_dtype = -1;
-    /* get the fragment variable name, without the group prefix */
-    err = _get_agg_inst_type(agg_inst_name, &nc_dtype);
+    AggregationInstruction *pinst;
+    err = cfa_var_get_agg_instr(cfa_id, cfa_varid, agg_inst_name, &pinst);
     CFA_CHECK(err);
-
-    /* check whether Aggregation Instruction is a scalar */
-    bool scalar = false;
-    if (strcmp(agg_inst_name, "format") == 0 && 
-        agg_var->cfa_instructionsp->format_scalar != 0)
-        scalar = true;
-    if (strcmp(agg_inst_name, "location") == 0 &&
-        agg_var->cfa_instructionsp->location_scalar)
-        scalar = true;
 
     /* get the actual name of the variable, outside of the group */
     char agg_var_name[STR_LENGTH] = "";
     err = _get_var_name_from_str(agg_inst_var, agg_var_name);
     CFA_CHECK(err);
 
-    if (scalar)
+    if (pinst->scalar)
     {
         /* create the variable */
-        err = nc_def_var(nc_id, agg_var_name, nc_dtype, 0, NULL, frag_varid);
+        err = nc_def_var(nc_id, agg_var_name, pinst->type.type, 0, 
+                         NULL, frag_varid);
         CFA_CHECK(err);
         return CFA_NOERR;
     }
@@ -1050,8 +1017,8 @@ _serialise_cfa_fragvar_netcdf(const int nc_id,
         err = nc_inq_dimid(nc_id, "j", &(nc_loc_dim_ids[1]));
         CFA_CHECK(err);
         /* create the location variable */
-        err = nc_def_var(nc_id, agg_var_name, nc_dtype, 2, nc_loc_dim_ids,
-                         frag_varid);
+        err = nc_def_var(nc_id, agg_var_name, pinst->type.type, 2, 
+                         nc_loc_dim_ids, frag_varid);
         CFA_CHECK(err);
     }
     else
@@ -1066,8 +1033,8 @@ _serialise_cfa_fragvar_netcdf(const int nc_id,
             CFA_CHECK(err);
         }
         /* create the variable */
-        err = nc_def_var(nc_id, agg_var_name, nc_dtype, agg_var->cfa_ndim,
-                         nc_fragdimids, frag_varid);
+        err = nc_def_var(nc_id, agg_var_name, pinst->type.type, 
+                         agg_var->cfa_ndim, nc_fragdimids, frag_varid);
         CFA_CHECK(err);
     }
 
@@ -1099,49 +1066,24 @@ cfa_netcdf_write1_frag(const int nc_id,
     /* write out one element in the file variable */
     /* get the netCDF group and variable id from the long name with groups
     compounded in it */
-    if (frag->file)
+    AggregationInstruction *agg_inst;
+    const FragmentDatum *frag_dat;
+    for (int i=0; i<agg_var->n_instr; i++)
     {
-        cfa_err = _get_nc_grp_var_ids_from_str(
-            nc_id, 
-            agg_var->cfa_instructionsp->file,
-            &grp_id, &var_id
-        );
-        CFA_CHECK(cfa_err);
-        cfa_err = nc_put_var1_string(grp_id, var_id, frag->index,
-                                     (const char**)(&(frag->file)));
-        CFA_CHECK(cfa_err);
-    }
-
-    /* write out one element in the format variable */
-    if (frag->format)
-    {
-        cfa_err = _get_nc_grp_var_ids_from_str(
-            nc_id, 
-            agg_var->cfa_instructionsp->format,
-            &grp_id, &var_id
-        );
-        CFA_CHECK(cfa_err);
-        /* format can be a scalar */
-        if (agg_var->cfa_instructionsp->format_scalar)
-            cfa_err = nc_put_var1_string(grp_id, var_id, 0,
-                                         (const char**)(&(frag->format)));
-        else
-            cfa_err = nc_put_var1_string(grp_id, var_id, frag->index,
-                                         (const char**)(&(frag->format)));
-        CFA_CHECK(cfa_err);
-    }
-
-    /* write out one element in the address variable */
-    if (frag->address)
-    {
-        cfa_err = _get_nc_grp_var_ids_from_str(nc_id, 
-                    agg_var->cfa_instructionsp->address,
-                    &grp_id, &var_id);
-        CFA_CHECK(cfa_err);
-        /* write out the data from the fragment */
-        cfa_err = nc_put_var1_string(grp_id, var_id, frag->index, 
-                                     (const char**)(&(frag->address)));
-        CFA_CHECK(cfa_err);        
+        agg_inst = &(agg_var->cfa_instr[i]);
+        /* get the FragmentDatum from the Fragment using the term from the
+           AggregationInstruction */
+        cfa_err = cfa_var_get_frag_datum(frag, agg_inst->term, &frag_dat);
+        if (cfa_err == CFA_NOERR)
+        {
+            cfa_err = _get_nc_grp_var_ids_from_str(
+                nc_id, agg_inst->value, &grp_id, &var_id
+            );
+            CFA_CHECK(cfa_err);
+            cfa_err = nc_put_var1(grp_id, var_id, frag->index, 
+                                  &(frag_dat->data));
+            CFA_CHECK(cfa_err);
+        }
     }
     return CFA_NOERR;
 }
@@ -1159,10 +1101,13 @@ _write_cfa_fragloc_netcdf(const int loc_grpid,
     int err = cfa_get_var(cfa_id, cfa_varid, &agg_var);
     CFA_CHECK(err);
 
+    /* get the "location" AggregationInstruction */
+    AggregationInstruction *pinst;
+    err = cfa_var_get_agg_instr(cfa_id, cfa_varid, "location", &pinst);
+    CFA_CHECK(err);
     /* get the actual name of the variable, outside of the group */
     char agg_var_name[STR_LENGTH] = "";
-    err = _get_var_name_from_str(agg_var->cfa_instructionsp->location, 
-                                 agg_var_name);
+    err = _get_var_name_from_str(pinst->value, agg_var_name);
     CFA_CHECK(err);
 
     /* get the variable id for the aggregation instruction variable name */
@@ -1224,57 +1169,45 @@ _serialise_cfa_fragments_netcdf(const int nc_id,
     AggregationVariable *agg_var = NULL;
     int err = cfa_get_var(cfa_id, cfa_varid, &agg_var);
     CFA_CHECK(err);
-    AggregationInstructions *agg_inst = agg_var->cfa_instructionsp;
 
-    /****** LOCATION ******/
-    int loc_grpid = -1;
-    err = _serialise_cfa_fraggrp_netcdf(nc_id, agg_inst->location, &loc_grpid);
-    CFA_CHECK(err);
-    err = _serialise_cfa_fragdims_netcdf(loc_grpid, cfa_id, cfa_varid, 0);
-    CFA_CHECK(err);
-    int loc_varid = -1;
-    err = _serialise_cfa_fragvar_netcdf(loc_grpid, cfa_id, cfa_varid, 
-                                        "location",
-                                        agg_inst->location, &loc_varid);
-    CFA_CHECK(err);
-    err = _write_cfa_fragloc_netcdf(loc_grpid, cfa_id, cfa_varid);
-    CFA_CHECK(err);
-
-    /****** FILE ******/
-    int file_grpid = -1;
-    err = _serialise_cfa_fraggrp_netcdf(nc_id, agg_inst->file, &file_grpid);
-    CFA_CHECK(err);
-    err = _serialise_cfa_fragdims_netcdf(file_grpid, cfa_id, cfa_varid, 0);
-    CFA_CHECK(err);
-    int file_varid = -1;
-    err = _serialise_cfa_fragvar_netcdf(file_grpid, cfa_id, cfa_varid, 
-                                        "file",
-                                        agg_inst->file, &file_varid);
-    CFA_CHECK(err);
-
-    /****** FORMAT ******/
-    int fmt_grpid = -1;
-    err = _serialise_cfa_fraggrp_netcdf(nc_id, agg_inst->format, &fmt_grpid);
-    CFA_CHECK(err);
-    err = _serialise_cfa_fragdims_netcdf(fmt_grpid, cfa_id, cfa_varid, 0);
-    CFA_CHECK(err);
-    int format_varid = -1;
-    err = _serialise_cfa_fragvar_netcdf(fmt_grpid, cfa_id, cfa_varid, 
-                                        "format",
-                                        agg_inst->format, &format_varid);
-    CFA_CHECK(err);
-
-    /****** ADDRESS ******/
-    int add_grpid = -1;
-    err = _serialise_cfa_fraggrp_netcdf(nc_id, agg_inst->address, &add_grpid);
-    CFA_CHECK(err);
-    err = _serialise_cfa_fragdims_netcdf(add_grpid, cfa_id, cfa_varid, 0);
-    CFA_CHECK(err);
-    int add_varid = -1;
-    err = _serialise_cfa_fragvar_netcdf(add_grpid, cfa_id, cfa_varid, 
-                                        "address",
-                                        agg_inst->address, &add_varid);
-    CFA_CHECK(err);
+    for (int i=0; i<agg_var->n_instr; i++)
+    {
+        AggregationInstruction *pinst = &(agg_var->cfa_instr[i]);
+        /****** LOCATION ******/
+        if (strcmp(pinst->term, "location") == 0)
+        {
+            int loc_grpid = -1;    
+            err = _serialise_cfa_fraggrp_netcdf(
+                nc_id, pinst->value, &loc_grpid
+            );
+            CFA_CHECK(err);
+            err = _serialise_cfa_fragdims_netcdf(
+                loc_grpid, cfa_id, cfa_varid, 0
+            );
+            CFA_CHECK(err);
+            int loc_varid = -1;
+            err = _serialise_cfa_fragvar_netcdf(
+                loc_grpid, cfa_id, cfa_varid, pinst->term, pinst->value, 
+                &loc_varid
+            );
+            CFA_CHECK(err);
+            err = _write_cfa_fragloc_netcdf(loc_grpid, cfa_id, cfa_varid);
+            CFA_CHECK(err);
+        }
+        else
+        {
+            int grpid = -1;
+            err = _serialise_cfa_fraggrp_netcdf(nc_id, pinst->value, &grpid);
+            CFA_CHECK(err);
+            err = _serialise_cfa_fragdims_netcdf(grpid, cfa_id, cfa_varid, 0);
+            CFA_CHECK(err);
+            int varid = -1;
+            err = _serialise_cfa_fragvar_netcdf(
+                grpid, cfa_id, cfa_varid, pinst->term, pinst->value, &varid
+            );
+            CFA_CHECK(err);            
+        }
+    }
 
     /* See if any Fragments have been added yet and write them out if they have
     */
@@ -1312,7 +1245,7 @@ _serialise_cfa_aggregation_instructions(int nc_id, int nc_varid,
 
     /* add the AggregatedDimensions as an attribute */
     AggregatedDimension *agg_dim = NULL;
-    char agg_dim_names[1024] = "";
+    char agg_dim_names[STR_LENGTH*4] = "";
     for (int d=0; d<agg_var->cfa_ndim; d++)
     {
         err = cfa_get_dim(cfa_id, agg_var->cfa_dim_idp[d], &agg_dim);
@@ -1324,45 +1257,26 @@ _serialise_cfa_aggregation_instructions(int nc_id, int nc_varid,
     agg_dim_names[strlen(agg_dim_names)-1] = '\0';
     /* write the AggregationDimension attribute */
     err = nc_put_att_text(nc_id, nc_varid, AGGREGATED_DIMENSIONS,
-                          strlen(agg_dim_names), agg_dim_names);
+                            strlen(agg_dim_names)+1, agg_dim_names);
     CFA_CHECK(err);
+    /* check there are all the standard AggregationInstructions */
+    if (!_has_standard_agg_instr(cfa_id, cfa_varid))
+        return CFA_AGG_NOT_DEFINED;
     /* write the AggregationInstructions as an attribute */
-    char agg_instr[2048] = "";
-    /* location */
-    if (agg_var->cfa_instructionsp->location)
+    char agg_instr[STR_LENGTH*8] = "";
+    for (int i=0; i<agg_var->n_instr; i++)
     {
-        strcat(agg_instr, "location: ");
-        strcat(agg_instr, agg_var->cfa_instructionsp->location);
+        AggregationInstruction *pinstr = &(agg_var->cfa_instr[i]);
+        strcat(agg_instr, pinstr->term);
+        strcat(agg_instr, ": ");
+        strcat(agg_instr, pinstr->value);
+        strcat(agg_instr, " ");
     }
-    else
-        return CFA_AGG_NOT_DEFINED;
-    /* file */
-    if (agg_var->cfa_instructionsp->file)
-    {
-        strcat(agg_instr, " file: ");
-        strcat(agg_instr, agg_var->cfa_instructionsp->file);
-    }
-    else
-        return CFA_AGG_NOT_DEFINED;
-    /* format */
-    if (agg_var->cfa_instructionsp->format)
-    {
-        strcat(agg_instr, " format: ");
-        strcat(agg_instr, agg_var->cfa_instructionsp->format);
-    }
-    else
-        return CFA_AGG_NOT_DEFINED;
-    /* address */
-    if (agg_var->cfa_instructionsp->address)
-    {
-        strcat(agg_instr, " address: ");
-        strcat(agg_instr, agg_var->cfa_instructionsp->address);
-    }
-    else
-        return CFA_AGG_NOT_DEFINED;
+    /* remove the final space */
+    agg_instr[strlen(agg_instr)-1] = '\0';
     /* write the netCDF attribute */
     err = nc_put_att_text(nc_id, nc_varid, AGGREGATED_DATA,
-                          strlen(agg_instr), agg_instr);
+                            strlen(agg_instr)+1, agg_instr);
     CFA_CHECK(err);
     return CFA_NOERR;
 }
@@ -1390,7 +1304,7 @@ _serialise_cfa_variable_netcdf(const int nc_id,
         CFA_CHECK(err);
     }
     /* add the aggregation instructions, if they exist */
-    if (agg_var->cfa_instructionsp)
+    if (agg_var->n_instr > 0)
     {
         err = _serialise_cfa_aggregation_instructions(nc_id, nc_varid,
                                                       cfa_id, cfa_varid);
@@ -1494,13 +1408,13 @@ serialise_cfa_netcdf_file(const int cfa_id)
     CFA_CHECK(err);
 
     /* add the conventions global metadata */
-    char conventions[256] = "";
+    char conventions[STR_LENGTH] = "";
     /* CFA-n.m */
     strcat(conventions, CFA_CONVENTION);
     strcat(conventions, CFA_VERSION);
     /* write the netCDF attribute */
     err = nc_put_att_text(agg_cont->x_id, NC_GLOBAL, CONVENTIONS,
-                          strlen(conventions), conventions);
+                          strlen(conventions)+1, conventions);
     CFA_CHECK(err);
     return CFA_NOERR;
 }

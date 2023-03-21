@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdbool.h>
+#include <netcdf.h>
 
 #include "cfa_mem.h"
 #include "cfa_errs.h"
@@ -10,7 +11,7 @@
 
 /* CFA metadata identifier string */
 #define CFA_CONVENTION ("CFA-")
-#define CFA_VERSION    ("0.6")
+#define CFA_VERSION    ("0.6.2")
 #define CONVENTIONS    ("Conventions")
 #define AGGREGATED_DIMENSIONS ("aggregated_dimensions")
 #define AGGREGATED_DATA ("aggregated_data")
@@ -19,6 +20,7 @@
 #define MAX_VARS 256
 #define MAX_DIMS 256
 #define MAX_CONTS 256
+#define MAX_AGG_INSTR 32
 
 /* Fast / naive indexing */
 #define FAST_INDEX
@@ -42,29 +44,29 @@ typedef struct {
     int cfa_dim_id;
 } FragmentDimension;
 
+typedef struct {
+    char *term;
+    void *data;
+    int size;
+} FragmentDatum;
+
 /* Fragment */
 typedef struct {
     size_t *location;
-    size_t *index;    
-    char *file;
-    char *format;
-    char *address;
-    char *units;
-    /* Datatype of Fragment - inherited from Variable */
-    DataType cfa_dtype;
+    size_t *index;
+    DynamicArray *cfa_fragdatsp;    
     /* helper variable - linear index into 1D arrays */
     int linear_index;
 } Fragment;
 
-/* AggregationInstructions */
+/* AggregationInstruction - singular */
+/* need to create location, file, format, address in code */
 typedef struct {
-    char *location;
-    bool location_scalar;
-    char *file;
-    char *format;
-    bool format_scalar;
-    char *address;
-} AggregationInstructions;
+    char *term;
+    char *value;
+    bool scalar;
+    DataType type;
+} AggregationInstruction;
 
 /* AggregatedData */
 typedef struct {
@@ -76,7 +78,7 @@ typedef struct {
 typedef struct {
     char *name;
     int length;
-    DataType cfa_dtype;
+    DataType type;
 } AggregatedDimension;
 
 /* AggregationVariable */
@@ -89,7 +91,8 @@ typedef struct {
     int cfa_frag_dim_idp[MAX_DIMS];
     DataType cfa_dtype;
     AggregatedData *cfa_datap;
-    AggregationInstructions *cfa_instructionsp;
+    int n_instr;
+    AggregationInstruction cfa_instr[MAX_AGG_INSTR];
 } AggregationVariable;
 
 /* File formats */
@@ -147,7 +150,7 @@ extern int cfa_get(const int cfa_id, AggregationContainer **agg_cont);
 extern int cfa_close(const int cfa_id);
 
 /* create an AggregationContainer within another AggregationContainer */
-extern int cfa_def_cont(const int cfa_id, const char* name, int *cfa_cont_idp);
+extern int cfa_def_cont(const int cfa_id, const char *name, int *cfa_cont_idp);
 
 /* get the identifier of an AggregationContainer within another 
 AggregationContainer, using the name */
@@ -191,11 +194,21 @@ extern int cfa_def_var(const int cfa_id, const char *name,
 extern int cfa_var_def_dims(const int cfa_id, const int cfa_var_id,
                             const int ndims, const int *cfa_dim_idsp);
 
-/* add the AggregationInstructions from a string 
-   location or format may be scalar */
+/* add the AggregationInstructions from a string, specifying which term to add
+   mandatory (standardized) terms are: location, file, format and address
+   non-standardized terms can be any text
+   any term can be scalar, but the specification for the mandatory terms limits 
+   this 
+*/
 extern int cfa_var_def_agg_instr(const int cfa_id, const int cfa_var_id,
-                                 const char *instruction,
-                                 const char *value, const bool scalar);
+                                 const char *term,
+                                 const char *value, const bool scalar,
+                                 const cfa_type inst_type);
+
+/* get an AggregationInstruction via the term key */
+extern int cfa_var_get_agg_instr(const int cfa_id, const int cfa_var_id,
+                                 const char *term,
+                                 AggregationInstruction **agg_instr);
 
 /* get the identifier of an AggregationVariable by name */
 extern int cfa_inq_var_id(const int cfa_id, const char *name, 
@@ -221,19 +234,33 @@ extern int cfa_var_def_frag_num(const int cfa_id, const int cfa_var_id,
 extern int cfa_var_get_frag_dim(const int cfa_id, const int cfa_var_id,
                                 const int dimn, FragmentDimension **frag_dim);
 
-/* write a single Fragment for a variable, DataType is inherited from parent
-   variable */
+/* write a single Fragment for a variable and an AggregationInstruction term
+   mandatory (standardized) terms are: location, file, format and address
+   DataType is inherited from the parent variable */
 extern int cfa_var_put1_frag(const int cfa_id, const int cfa_var_id,
-                             const size_t *frag_location, 
+                             const size_t *frag_location,
                              const size_t *data_location,
-                             const char *file, const char *format, 
-                             const char *address, const char *units);
+                             const char *term,
+                             const void *data,
+                             const int length);
+
+/* Helper function to make writing strings to FragmentDatums easier as they will
+(probably) be the most command data type written to a FragmentDatum*/
+extern int cfa_var_put1_frag_string(const int cfa_id, const int cfa_var_id,
+                             const size_t *frag_location,
+                             const size_t *data_location,
+                             const char *term,
+                             const char *data);
 
 /* get a single Fragment for a variable */
 extern int cfa_var_get1_frag(const int cfa_id, const int cfa_var_id,
                              const size_t *frag_location,
                              const size_t *data_location,
                              const Fragment **ret_frag);
+
+/* get a FragmentDatum from a Fragment by name */
+extern int cfa_var_get_frag_datum(const Fragment *frag, const char *term,
+                                  const FragmentDatum **ret_frag_dat);
 
 /* info / output command - output the structure of a container, including the
 dimensions, variables and any sub-containers

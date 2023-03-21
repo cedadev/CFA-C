@@ -9,6 +9,7 @@ the file */
 #define CFA_MEM_LEAK               (-501) /* Debugging check for memory leak */
 #define CFA_BOUNDS_ERR             (-502) /* Bounds error in dynamic array */
 #define CFA_EOS                    (-503) /* End of string */
+#define CFA_NAT_ERR                (-504) /* Not a type */
 #define CFA_NOT_FOUND_ERR          (-510) /* Cannot find CFA Container */
 #define CFA_DIM_NOT_FOUND_ERR      (-520) /* Cannot find CFA Dimension */
 #define CFA_VAR_NOT_FOUND_ERR      (-530) /* Cannot find CFA Variable */
@@ -18,6 +19,7 @@ the file */
 #define CFA_VAR_FRAG_DIM_NOT_FOUND (-534) /* Fragment dimension not found */
 #define CFA_VAR_NO_FRAG            (-535) /* Fragment not defined */
 #define CFA_VAR_NO_FRAG_INDEX      (-536) /* either the frag_location or data_location not set */
+#define CFA_VAR_FRAGDAT_NOT_FOUND  (-537) /* The FragmentDatum could not be found */
 #define CFA_UNKNOWN_FILE_FORMAT    (-540) /* Unsupported CFA file format */
 #define CFA_NOT_CFA_FILE           (-541) /* Not a CFA file - does not contain relevant metadata */
 #define CFA_UNSUPPORTED_VERSION    (-542) /* Unsupported version of CFA-netCDF */

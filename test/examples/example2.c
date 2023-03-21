@@ -9,7 +9,10 @@
 const char* output_path = "examples/test/example2.nc";
 
 int
-example2(void)
+example2_load(void)
+
+int
+example2_save(void)
 {
     /* recreate example 1 from the documentation */
     int cfa_err = -1;
@@ -43,17 +46,17 @@ example2(void)
     cfa_err = cfa_var_def_dims(cfa_id, cfa_varid, 4, cfa_dimids);
     CFA_ERR(cfa_err);
     /* add the aggregation instructions */
-    cfa_err = cfa_var_def_agg_instr(cfa_id, cfa_varid, 
-                                    "location", "aggregation_location", 0);
+    cfa_err = cfa_var_def_agg_instr(cfa_id, cfa_varid, "location", 
+                                    "aggregation_location", false, CFA_INT);
     CFA_ERR(cfa_err);
-    cfa_err = cfa_var_def_agg_instr(cfa_id, cfa_varid, 
-                                    "file", "aggregation_file", 0);
+    cfa_err = cfa_var_def_agg_instr(cfa_id, cfa_varid, "file", 
+                                    "aggregation_file", false, CFA_STRING);
     CFA_ERR(cfa_err);
-    cfa_err = cfa_var_def_agg_instr(cfa_id, cfa_varid, 
-                                    "format", "aggregation_format", 1);
+    cfa_err = cfa_var_def_agg_instr(cfa_id, cfa_varid, "format", 
+                                    "aggregation_format", true, CFA_STRING);
     CFA_ERR(cfa_err);
-    cfa_err = cfa_var_def_agg_instr(cfa_id, cfa_varid, 
-                                    "address", "aggregation_address", 0);
+    cfa_err = cfa_var_def_agg_instr(cfa_id, cfa_varid, "address", 
+                                    "aggregation_address", false, CFA_STRING);
     CFA_ERR(cfa_err);
     /* add the fragmentation */
     const int frags[4] = {2, 1, 1, 1};
@@ -63,17 +66,20 @@ example2(void)
     /* add the first Fragment */
     size_t frag_location[4] = {0, 0, 0, 0};
     size_t data_location[8] = {0,6, 0,1, 0,1, 0,1};
-    cfa_err = cfa_var_put1_frag(cfa_id, cfa_varid, 
-                                frag_location, data_location, 
-                                "January-June.nc", "nc", "temp", NULL);
+    cfa_err = cfa_var_put1_frag_string(cfa_id, cfa_varid, frag_location, 
+                                       data_location, "file", "January-June.nc");
     CFA_ERR(cfa_err);
-
+    cfa_err = cfa_var_put1_frag_string(cfa_id, cfa_varid, frag_location, 
+                                       data_location, "format", "nc");
+    CFA_ERR(cfa_err);
+    cfa_err = cfa_var_put1_frag_string(cfa_id, cfa_varid, frag_location, 
+                                       data_location, "address", "temp");
+    CFA_ERR(cfa_err);
     /* add the second Fragment */
     frag_location[0] = 1;    // iterate to the next Fragment location
     data_location[0] = 6;    // iterate to the next location in the parent array
-    cfa_err = cfa_var_put1_frag(cfa_id, cfa_varid,
-                                frag_location, data_location,
-                                NULL, NULL, "temp2", NULL);
+    cfa_err = cfa_var_put1_frag_string(cfa_id, cfa_varid, frag_location, 
+                                       data_location, "address", "temp2");
     CFA_ERR(cfa_err);
 
     /* write out the initial structures, variables, etc */
@@ -211,8 +217,22 @@ example2(void)
 }
 
 int
-main(void)
+main(int argc, char *argv[])
 {
-    example2();
+    /* Argument passed in: S - test save, L - test load */
+    if (argc != 2)
+    {
+        printf("Wrong number of arguments\n");
+        return 1;
+    }
+    if (strcmp(argv[1], "S") == 0)
+        example2_save();
+    else if (strcmp(argv[1], "L") == 0)
+        example2_load();
+    else
+    {
+        printf("Unknown argument\n");
+        return 1;
+    }
     return 0;
 }

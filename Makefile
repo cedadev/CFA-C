@@ -14,13 +14,16 @@ CFA_LIB=libcfa.so
 # C flags (-g for breakpoint debugging)
 CC = gcc
 CFLAGS=-I$(SRC_DIR) -std=c11
-DEBUGFLAGS=-O0 -D_DEBUG -Wall -Wextra -g
-
+DEBUGFLAGS=-O0 -D_DEBUG -Wall -Wextra -Wuninitialized -g -ferror-limit=100
+RELEASEFLAGS=-O3 -Wall -Wextra -Wuninitialized
 # Linker flags for shared library
 SFLAGS = -shared -fPIC
 
 # Linker flags for everthing else
 LFLAGS = -L$(LIB_DIR) -lcfa -lnetcdf
+
+# Flags to use for this build
+FLAGS = $(DEBUGFLAGS)
 
 # make everything
 all : $(CFA_LIB)
@@ -36,13 +39,13 @@ $(BLD_EX_DIR): $(BLD_DIR)
 	mkdir $(BLD_DIR)/examples
 
 $(CFA_LIB) : $(CFA_SRC) $(LIB_DIR)
-	$(CC) $(CFLAGS) $(DEBUGFLAGS) $(SFLAGS) -lnetcdf $(CFA_SRC) -o $(LIB_DIR)/$@
+	$(CC) $(CFLAGS) $(FLAGS) $(SFLAGS) -lnetcdf $(CFA_SRC) -o $(LIB_DIR)/$@
 
 test_% : $(TST_DIR)/test_%.c $(CFA_LIB) $(BLD_DIR)
-	$(CC) $(CFLAGS) $(DEBUGFLAGS) $(LFLAGS) $< -o $(BLD_DIR)/$@
+	$(CC) $(CFLAGS) $(FLAGS) $(LFLAGS) $< -o $(BLD_DIR)/$@
 
 example% : $(TST_DIR)/examples/example%.c $(CFA_LIB) $(BLD_EX_DIR)
-	$(CC) $(CFLAGS) $(DEBUGFLAGS) $(LFLAGS) $< -o $(BLD_EX_DIR)/$@
+	$(CC) $(CFLAGS) $(FLAGS) $(LFLAGS) $< -o $(BLD_EX_DIR)/$@
 
 tests : test_cfa test_cfa_dim test_cfa_mem test_cfa_var test_cfa_cont
 	build/test_cfa

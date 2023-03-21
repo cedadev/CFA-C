@@ -4,14 +4,13 @@
 #include <string.h>
 
 #include "cfa.h"
-
-const char* example3_path = "examples/test/example3.nc";
+const char* example1_path = "examples/test/example1b.nc";
 
 int
-example3_save(void)
+example1_save(void)
 {
-    printf("Example 3 test save\n");
-    /* recreate example 3 from the documentation */
+    printf("Example 1 test save\n");
+    /* recreate example 1 from the documentation */
     int cfa_err = -1;
     int cfa_id = -1;
     int cfa_varid = -1;
@@ -19,7 +18,7 @@ example3_save(void)
     int nc_id = -1;
 
     /* create the CFA parent container */
-    cfa_err = cfa_create(example3_path, CFA_NETCDF, &cfa_id);
+    cfa_err = cfa_create(example1_path, CFA_NETCDF, &cfa_id);
     CFA_ERR(cfa_err);
 
     /* define the CFA dimensions */
@@ -42,69 +41,87 @@ example3_save(void)
     /* add dimensions */
     cfa_err = cfa_var_def_dims(cfa_id, cfa_varid, 4, cfa_dimids);
     CFA_ERR(cfa_err);
-    /* add the aggregation instructions 
-       these are part of a group for example 3 */
-    cfa_err = cfa_var_def_agg_instr(cfa_id, cfa_varid, "location",
-                                    "/aggregation/location", false, CFA_INT);
+    /* add the aggregation instructions */
+    cfa_err = cfa_var_def_agg_instr(cfa_id, cfa_varid, "location", 
+                                    "aggregation_location", false, CFA_INT);
     CFA_ERR(cfa_err);
-    cfa_err = cfa_var_def_agg_instr(cfa_id, cfa_varid, "file",
-                                    "/aggregation/file", false, CFA_STRING);
+    cfa_err = cfa_var_def_agg_instr(cfa_id, cfa_varid, "file", 
+                                    "aggregation_file", false, CFA_STRING);
     CFA_ERR(cfa_err);
-    cfa_err = cfa_var_def_agg_instr(cfa_id, cfa_varid, "format",
-                                    "/aggregation/format", true, CFA_STRING);
+    cfa_err = cfa_var_def_agg_instr(cfa_id, cfa_varid, "format", 
+                                    "aggregation_format", true, CFA_STRING);
     CFA_ERR(cfa_err);
-    cfa_err = cfa_var_def_agg_instr(cfa_id, cfa_varid, "address",
-                                    "/aggregation/address", false, CFA_STRING);
+    cfa_err = cfa_var_def_agg_instr(cfa_id, cfa_varid, "address", 
+                                    "aggregation_address", false, CFA_STRING);
+    CFA_ERR(cfa_err);
+    cfa_err = cfa_var_def_agg_instr(cfa_id, cfa_varid, "tracking_id", 
+                                    "fragment_id", false, CFA_STRING);
     CFA_ERR(cfa_err);
     /* add the fragmentation */
-    const int frags_nums[4] = {2, 1, 1, 1};
-    cfa_err = cfa_var_def_frag_num(cfa_id, cfa_varid, frags_nums);
-    CFA_ERR(cfa_err);
-
-    /* output info */
-    cfa_err = cfa_info(cfa_id, 0);
-    CFA_ERR(cfa_err);
-
-    /* add the first Fragment */
-    size_t frag_location[4];
-    frag_location[0] = 0; frag_location[1] = 0; 
-    frag_location[2] = 0; frag_location[3] = 0;
-    cfa_err = cfa_var_put1_frag_string(cfa_id, cfa_varid, frag_location, NULL,
-                                       "address", "temp1");
-    CFA_ERR(cfa_err);
-
-    /* add the second Fragment */
-    frag_location[0] = 1; frag_location[1] = 0; 
-    frag_location[2] = 0; frag_location[3] = 0;
-    cfa_err = cfa_var_put1_frag_string(cfa_id, cfa_varid, frag_location, NULL,
-                                       "address", "temp2");
+    const int frags[4] = {2, 1, 1, 1};
+    cfa_err = cfa_var_def_frag_num(cfa_id, cfa_varid, frags);
     CFA_ERR(cfa_err);
 
     /* write out the initial structures, variables, etc */
     cfa_err = cfa_serialise(cfa_id);
     CFA_ERR(cfa_err);
 
-    /* once the CFA structure(s) have been serialised we can add the metadata
-    to the netCDF variables that have been created during the serialisation */
-    /* get the netCDF file id from the CFA File Container */
+    /* add the first Fragment */
+    size_t frag_location[4];
+    frag_location[0] = 0; frag_location[1] = 0; 
+    frag_location[2] = 0; frag_location[3] = 0;
+    /* put each AggregationInstruction individually */
+    cfa_err = cfa_var_put1_frag_string(cfa_id, cfa_varid, frag_location, NULL,
+                                       "file", "January-June.nc");
+    CFA_ERR(cfa_err);
+    cfa_err = cfa_var_put1_frag_string(cfa_id, cfa_varid, frag_location, NULL,
+                                       "format", "nc");
+    CFA_ERR(cfa_err);
+    cfa_err = cfa_var_put1_frag_string(cfa_id, cfa_varid, frag_location, NULL,
+                                       "address", "temp");
+    CFA_ERR(cfa_err);
+    cfa_err = cfa_var_put1_frag_string(cfa_id, cfa_varid, frag_location, NULL,
+                                       "tracking_id", "764489ad-7bee-4228");
+    CFA_ERR(cfa_err);
+
+    frag_location[0] = 1; frag_location[1] = 0; 
+    frag_location[2] = 0; frag_location[3] = 0;
+    cfa_err = cfa_var_put1_frag_string(cfa_id, cfa_varid, frag_location, NULL,
+                                "file", "July-December.nc");
+    CFA_ERR(cfa_err);
+    cfa_err = cfa_var_put1_frag_string(cfa_id, cfa_varid, frag_location, NULL,
+                                "address", "temp");
+    CFA_ERR(cfa_err);
+    cfa_err = cfa_var_put1_frag_string(cfa_id, cfa_varid, frag_location, NULL,
+                                "tracking_id", "a4f8deb3-fae1-26b6");
+    CFA_ERR(cfa_err);
+
+    /* output info */
+    cfa_err = cfa_info(cfa_id, 0);
+    CFA_ERR(cfa_err);
+
+    /* get the netCDF file ID stored internally in the CFA AggregationContainer
+    */
     cfa_err = cfa_get_ext_file_id(cfa_id, &nc_id);
     CFA_ERR(cfa_err);
 
-    /* get the netCDF var id for the temp variable */
+    /* once the CFA structure(s) have been serialised we can add the metadata
+    to the netCDF variables that have been created during the serialisation */
+    /* first get the netcdf var id for the temp variable */
     int nc_varid = -1;
     cfa_err = nc_inq_varid(nc_id, "temp", &nc_varid);
     CFA_ERR(cfa_err);
 
     /* add the metadata to the temp variable */
-    const char *temp_standard_name = "air_temperature";
+    const char* temp_standard_name = "air_temperature";
     cfa_err = nc_put_att_text(nc_id, nc_varid, "standard_name",
                               strlen(temp_standard_name), temp_standard_name);
     CFA_ERR(cfa_err);
-    const char *temp_units = "K";
+    const char* temp_units = "K";
     cfa_err = nc_put_att_text(nc_id, nc_varid, "units",
                               strlen(temp_units), temp_units);
     CFA_ERR(cfa_err);
-    const char *temp_cell_methods = "time: mean";
+    const char* temp_cell_methods = "time: mean";
     cfa_err = nc_put_att_text(nc_id, nc_varid, "cell_methods",
                               strlen(temp_cell_methods), temp_cell_methods);
     CFA_ERR(cfa_err);
@@ -113,11 +130,11 @@ example3_save(void)
     int nc_timeid = -1;
     cfa_err = nc_inq_varid(nc_id, "time", &nc_timeid);
     CFA_ERR(cfa_err);
-    const char *time_standard_name = "time";
+    const char* time_standard_name = "time";
     cfa_err = nc_put_att_text(nc_id, nc_timeid, "standard_name",
                               strlen(time_standard_name), time_standard_name);
     CFA_ERR(cfa_err);
-    const char *time_units = "days since 2001-01-01";
+    const char* time_units = "days since 2001-01-01";
     cfa_err = nc_put_att_text(nc_id, nc_timeid, "units",
                               strlen(time_units), time_units);
     CFA_ERR(cfa_err);
@@ -126,11 +143,11 @@ example3_save(void)
     int nc_lvlid = -1;
     cfa_err = nc_inq_varid(nc_id, "level", &nc_lvlid);
     CFA_ERR(cfa_err);
-    const char *lvl_standard_name = "height_above_mean_sea_level";
+    const char* lvl_standard_name = "height_above_mean_sea_level";
     cfa_err = nc_put_att_text(nc_id, nc_lvlid, "standard_name",
                               strlen(lvl_standard_name), lvl_standard_name);
     CFA_ERR(cfa_err);
-    const char *lvl_units = "m";
+    const char* lvl_units = "m";
     cfa_err = nc_put_att_text(nc_id, nc_lvlid, "units",
                               strlen(lvl_units), lvl_units);
     CFA_ERR(cfa_err);
@@ -139,11 +156,11 @@ example3_save(void)
     int nc_latid = -1;
     cfa_err = nc_inq_varid(nc_id, "latitude", &nc_latid);
     CFA_ERR(cfa_err);
-    const char *lat_standard_name = "latitude";
+    const char* lat_standard_name = "latitude";
     cfa_err = nc_put_att_text(nc_id, nc_latid, "standard_name",
                               strlen(lat_standard_name), lat_standard_name);
     CFA_ERR(cfa_err);
-    const char *lat_units = "degrees_north";
+    const char* lat_units = "degrees_north";
     cfa_err = nc_put_att_text(nc_id, nc_latid, "units",
                               strlen(lat_units), lat_units);
     CFA_ERR(cfa_err);
@@ -156,7 +173,7 @@ example3_save(void)
     cfa_err = nc_put_att_text(nc_id, nc_lonid, "standard_name",
                               strlen(lon_standard_name), lon_standard_name);
     CFA_ERR(cfa_err);
-    const char *lon_units = "degrees_east";
+    const char* lon_units = "degrees_east";
     cfa_err = nc_put_att_text(nc_id, nc_lonid, "units",
                               strlen(lon_units), lon_units);
     CFA_ERR(cfa_err);
@@ -170,28 +187,6 @@ example3_save(void)
                           strlen(conventions), conventions);
     CFA_ERR(cfa_err);
 
-    /* create the temp1 and temp2 variables inside the aggregation group */
-    int nc_agg_grp = -1;
-    cfa_err = nc_inq_grp_ncid(nc_id, "aggregation", &nc_agg_grp);
-    CFA_ERR(cfa_err);
-    const int temp_dim_ids[3] = {nc_timeid, nc_latid, nc_lonid};
-    int nc_temp1_var = -1;
-    cfa_err = nc_def_var(nc_agg_grp, "temp1", NC_DOUBLE, 
-                         3, temp_dim_ids, &nc_temp1_var);
-    CFA_ERR(cfa_err);
-    /* add metadata */
-    cfa_err = nc_put_att_text(nc_agg_grp, nc_temp1_var, "units",
-                              6, "Kelvin");
-    CFA_ERR(cfa_err);
-    int nc_temp2_var = -1;
-    cfa_err = nc_def_var(nc_agg_grp, "temp2", NC_DOUBLE, 
-                         3, temp_dim_ids, &nc_temp2_var);
-    CFA_ERR(cfa_err);
-    /* add metadata */
-    cfa_err = nc_put_att_text(nc_agg_grp, nc_temp2_var, "units",
-                              8, "degreesC");
-    CFA_ERR(cfa_err);
-
     /* write the data for the time variable */
     const size_t start = 0;
     const size_t span = 12;
@@ -200,21 +195,11 @@ example3_save(void)
     cfa_err = nc_put_vara_int(nc_id, nc_timeid, &start, &span, time_vals);
     CFA_CHECK(cfa_err);
 
-    /* write the data for the temp1 and temp2 variables */
-    const double temp1_vals[6] = {270.3, 272.5, 274.1, 278.5, 280.3, 283.6};
-    const size_t temp_start[3] = {0, 0, 0};
-    const size_t temp_span[3] = {1, 1, 6};
-    cfa_err = nc_put_vara_double(nc_agg_grp, nc_temp1_var, 
-                                 temp_start, temp_span,
-                                 temp1_vals);
-    CFA_CHECK(cfa_err);
-    const double temp2_vals[6] = {4.5, 3.0, 0.0, -2.6, -5.6, -10.2};
-    cfa_err = nc_put_vara_double(nc_agg_grp, nc_temp2_var,
-                                 temp_start, temp_span, 
-                                 temp2_vals);
-    CFA_CHECK(cfa_err);
+    /* output info */
+    cfa_err = cfa_info(cfa_id, 0);
+    CFA_ERR(cfa_err);
 
-    /* close the CFA file (closes netCDF file as well) */
+    /* close the CFA file (closes the netCDF file as well) */
     cfa_err = cfa_close(cfa_id);
     CFA_ERR(cfa_err);
 
@@ -226,24 +211,19 @@ example3_save(void)
 }
 
 int
-example3_load(void)
+example1_load(void)
 {
     int cfa_err = -1;
     int cfa_id = -1;
-    printf("Example 3 test load\n");
+    printf("Example 1 test load\n");
     
     /* load and parse */
-    cfa_err = cfa_load(example3_path, CFA_NETCDF, &cfa_id);
-    CFA_ERR(cfa_err);
-
-    /* get the /vargroup group */
-    int cfa_grp_id = -1;
-    cfa_err = cfa_inq_cont_id(cfa_id, "/vargroup", &cfa_grp_id);
+    cfa_err = cfa_load(example1_path, CFA_NETCDF, &cfa_id);
     CFA_ERR(cfa_err);
 
     /* get the "temp" variable id */
     int cfa_var_id = -1;
-    cfa_err = cfa_inq_var_id(cfa_grp_id, "temp", &cfa_var_id);
+    cfa_err = cfa_inq_var_id(cfa_id, "temp", &cfa_var_id);
     CFA_ERR(cfa_err);
 
     /* get the first fragment */
@@ -251,34 +231,33 @@ example3_load(void)
     frag_location[0] = 0; frag_location[1] = 0; 
     frag_location[2] = 0; frag_location[3] = 0;
     const Fragment *frag = NULL;
-    cfa_err = cfa_var_get1_frag(cfa_grp_id, cfa_var_id, 
+    cfa_err = cfa_var_get1_frag(cfa_id, cfa_var_id, 
                                 frag_location, NULL,
-                                &frag);
-    CFA_ERR(cfa_err);
-    /* get the second Fragment */
-    frag_location[0] = 1; frag_location[1] = 0; 
-    frag_location[2] = 0; frag_location[3] = 0;
-    cfa_err = cfa_var_get1_frag(cfa_grp_id, cfa_var_id,
-                                frag_location, NULL,
-                                &frag);
-    CFA_ERR(cfa_err);
+                                &frag);    
 
+    /* get the fragment by data location*/
+    size_t data_location[4];
+    data_location[0] = 6; data_location[1] = 0; 
+    data_location[2] = 0; data_location[3] = 0;
+    cfa_err = cfa_var_get1_frag(cfa_id, cfa_var_id, 
+                                NULL, data_location,
+                                &frag);
     /* output info */
     cfa_err = cfa_info(cfa_id, 0);
     CFA_ERR(cfa_err);
 
-    /* close the CFA file to free memory */
+    /* close file - frees the memory */
     cfa_err = cfa_close(cfa_id);
     CFA_ERR(cfa_err);
 
-    /* check for memory leaks */
+    /* check the memory for leaks */
     cfa_err = cfa_memcheck();
     CFA_ERR(cfa_err);
     return CFA_NOERR;
 }
 
 int
-main(int argc, char **argv)
+main(int argc, char *argv[])
 {
     /* Argument passed in: S - test save, L - test load */
     if (argc != 2)
@@ -287,9 +266,9 @@ main(int argc, char **argv)
         return 1;
     }
     if (strcmp(argv[1], "S") == 0)
-        example3_save();
+        example1_save();
     else if (strcmp(argv[1], "L") == 0)
-        example3_load();
+        example1_load();
     else
     {
         printf("Unknown argument\n");

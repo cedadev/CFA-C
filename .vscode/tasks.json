@@ -45,9 +45,14 @@
             "args": ["test_cfa_cont"],
         },
         {
-            "label": "build_example1",
+            "label": "build_example1a",
             "command": "make",
-            "args": ["example1"],
+            "args": ["example1a"],
+        },
+        {
+            "label": "build_example1b",
+            "command": "make",
+            "args": ["example1b"],
         },
         {
             "label": "build_example2",

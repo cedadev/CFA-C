@@ -14,3 +14,4 @@
 #define CFA_UINT         (9)      /**< unsigned 4-byte int */
 #define CFA_INT64        (10)     /**< signed 8-byte int */
 #define CFA_UINT64       (11)     /**< unsigned 8-byte int */
+#define CFA_STRING       (12)     /**array of char, or however netCDF interprets it*/

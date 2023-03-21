@@ -267,6 +267,8 @@ int get_type_size(const cfa_type type)
             return 8;
         case CFA_UINT64:
             return 8;
+        case CFA_STRING:
+            return 1;  /* same as char, need to pass in string length as well */
         default:
             return 0;
     }

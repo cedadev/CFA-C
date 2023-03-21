@@ -89,8 +89,8 @@
             "preLaunchTask": "build_test_cfa_cont"
         },
         {
-            "name": "example1_save",
-            "program": "${workspaceRoot}/build/examples/example1",
+            "name": "example1a_save",
+            "program": "${workspaceRoot}/build/examples/example1a",
             "args": ["S"],
             "type": "cppdbg",
             "request": "launch",
@@ -103,11 +103,11 @@
                 "environment": [{"name" : "LD_LIBRARY_PATH",
                 "value" : "$LD_LIBRARY_PATH:../CFA-C/lib"}]
             },
-            "preLaunchTask": "build_example1"
+            "preLaunchTask": "build_example1a"
         },
         {
-            "name": "example1_load",
-            "program": "${workspaceRoot}/build/examples/example1",
+            "name": "example1a_load",
+            "program": "${workspaceRoot}/build/examples/example1a",
             "args": ["L"],
             "type": "cppdbg",
             "request": "launch",
@@ -121,6 +121,40 @@
                 "value" : "$LD_LIBRARY_PATH:../CFA-C/lib"}]
             },
             "preLaunchTask": "build_example1"
+        },
+        {
+            "name": "example1b_save",
+            "program": "${workspaceRoot}/build/examples/example1b",
+            "args": ["S"],
+            "type": "cppdbg",
+            "request": "launch",
+            "cwd": "${workspaceRoot}",
+            "targetArchitecture": "x64",
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "environment": [{"name" : "LD_LIBRARY_PATH",
+                "value" : "$LD_LIBRARY_PATH:../CFA-C/lib"}]
+            },
+            "preLaunchTask": "build_example1b"
+        },
+        {
+            "name": "example1b_load",
+            "program": "${workspaceRoot}/build/examples/example1b",
+            "args": ["L"],
+            "type": "cppdbg",
+            "request": "launch",
+            "cwd": "${workspaceRoot}",
+            "targetArchitecture": "x64",
+            "osx": {
+                "MIMode": "lldb"
+            },  
+            "linux": {
+                "environment": [{"name" : "LD_LIBRARY_PATH",
+                "value" : "$LD_LIBRARY_PATH:../CFA-C/lib"}]
+            },
+            "preLaunchTask": "build_example1b"
         },
         {
             "name": "example2",
