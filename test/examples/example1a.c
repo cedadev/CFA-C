@@ -231,6 +231,13 @@ example1_load(void)
     cfa_err = cfa_var_get1_frag(cfa_id, cfa_var_id, 
                                 NULL, data_location,
                                 &frag);
+    
+    /* print out a fragment datum */
+    const FragmentDatum *fd;
+    cfa_err = cfa_var_get_frag_datum(frag, "file", &fd);
+    CFA_ERR(cfa_err);
+    printf("%s %s \n", fd->term, (char*)(fd->data));
+
     /* output info */
     cfa_err = cfa_info(cfa_id, 0);
     CFA_ERR(cfa_err);

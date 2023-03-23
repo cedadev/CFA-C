@@ -120,7 +120,7 @@
                 "environment": [{"name" : "LD_LIBRARY_PATH",
                 "value" : "$LD_LIBRARY_PATH:../CFA-C/lib"}]
             },
-            "preLaunchTask": "build_example1"
+            "preLaunchTask": "build_example1a"
         },
         {
             "name": "example1b_save",

@@ -950,7 +950,7 @@ cfa_var_get_frag_datum(const Fragment *frag, const char *term,
     {
         cfa_err = get_array_node(&frag_dat_array, fd, (void**)(&frag_dat));
         CFA_CHECK(cfa_err);
-        if (strcmp(frag_dat->term, term) == 0)
+        if (frag_dat->term && strcmp(frag_dat->term, term) == 0)
         {
             *ret_frag_dat = frag_dat;
             return CFA_NOERR;
@@ -1022,19 +1022,22 @@ _cfa_free_fragments(AggregationVariable *agg_var)
                 }
                 /* free the Fragment Datums */
                 int n_fd = 0;
-                cfa_err = get_array_length(&(cfrag->cfa_fragdatsp), &n_fd);
-                CFA_CHECK(cfa_err);
-                FragmentDatum *c_fragdat = NULL;
-                for (int d=0; d<n_fd; d++)
+                if (cfrag->cfa_fragdatsp)
                 {
-                    cfa_err = get_array_node(&(cfrag->cfa_fragdatsp), d,
-                                             (void**)(&c_fragdat));
+                    cfa_err = get_array_length(&(cfrag->cfa_fragdatsp), &n_fd);
                     CFA_CHECK(cfa_err);
-                    __free_str_via_pointer(&(c_fragdat->term));
-                    cfa_free(c_fragdat->data, c_fragdat->size);
+                    FragmentDatum *c_fragdat = NULL;
+                    for (int d=0; d<n_fd; d++)
+                    {
+                        cfa_err = get_array_node(&(cfrag->cfa_fragdatsp), d,
+                                                (void**)(&c_fragdat));
+                        CFA_CHECK(cfa_err);
+                        __free_str_via_pointer(&(c_fragdat->term));
+                        cfa_free(c_fragdat->data, c_fragdat->size);
+                    }
+                    free_array(&(cfrag->cfa_fragdatsp));
+                    cfrag->cfa_fragdatsp = NULL;
                 }
-                free_array(&(cfrag->cfa_fragdatsp));
-                cfrag->cfa_fragdatsp = NULL;
             }
             /* free the array */
             free_array(&(agg_var->cfa_datap->cfa_fragmentsp));
