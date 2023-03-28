@@ -1026,8 +1026,11 @@ cfa_netcdf_write1_frag(const int nc_id,
                 nc_id, agg_inst->value, &grp_id, &var_id
             );
             CFA_CHECK(cfa_err);
-            cfa_err = nc_put_var1(grp_id, var_id, frag->index, 
-                                  &(frag_dat->data));
+            /* special case for strings - why? */
+            const void *data = frag_dat->data;
+            if (agg_inst->type.type == CFA_STRING)
+                data = &(frag_dat)->data;
+            cfa_err = nc_put_var1(grp_id, var_id, frag->index, data);
             CFA_CHECK(cfa_err);
         }
     }

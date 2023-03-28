@@ -867,7 +867,7 @@ cfa_var_put1_frag_string(const int cfa_id, const int cfa_var_id,
                          const char *data)
 {
     int cfa_err = cfa_var_put1_frag(cfa_id, cfa_var_id, frag_location, 
-                                    data_location, term, (const void*) data,
+                                    data_location, term, (const void*)(data),
                                     strlen(data)+1);
     return cfa_err;
 }
