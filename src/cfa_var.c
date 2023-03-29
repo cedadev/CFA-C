@@ -950,12 +950,26 @@ cfa_var_get1_frag(const int cfa_id, const int cfa_var_id,
                 return CFA_UNKNOWN_FILE_FORMAT;
         }
     }
-    /* get the frag datum */
-    const FragmentDatum *frag_dat;
-    cfa_err = _cfa_var_get_frag_datum(frag, term, &frag_dat);
-    CFA_CHECK(cfa_err);
-    /* assign the data to the return variable */
-    *data = frag_dat->data;
+    /* return the location or the data_location */
+    if (strcmp(term, "location") == 0)
+    {
+        for (int d=0; d<agg_var->cfa_ndim*2; d++)
+            data[d] = (void*)(frag->location[d]);
+    }
+    else if (strcmp(term, "index") == 0)
+    {
+        for (int d=0; d<agg_var->cfa_ndim; d++)
+            data[d] = (void*)(frag->index[d]);
+    }
+    else
+    {
+        /* get the frag datum */
+        const FragmentDatum *frag_dat;
+        cfa_err = _cfa_var_get_frag_datum(frag, term, &frag_dat);
+        CFA_CHECK(cfa_err);
+        /* assign the data to the return variable */
+        *data = frag_dat->data;
+    }
  
     return CFA_NOERR;
 }
