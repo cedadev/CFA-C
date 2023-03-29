@@ -252,15 +252,19 @@ extern int cfa_var_put1_frag_string(const int cfa_id, const int cfa_var_id,
                              const char *term,
                              const char *data);
 
-/* get a single Fragment for a variable */
+/* get a value of a single Fragment for a variable and Aggregation term*/
 extern int cfa_var_get1_frag(const int cfa_id, const int cfa_var_id,
                              const size_t *frag_location,
                              const size_t *data_location,
-                             const Fragment **ret_frag);
+                             const char *term,
+                             void **data);
 
-/* get a FragmentDatum from a Fragment by name */
-extern int cfa_var_get_frag_datum(const Fragment *frag, const char *term,
-                                  const FragmentDatum **ret_frag_dat);
+// /* get the string value of a single Fragment for a variable and Aggregation term*/
+// extern int cfa_var_get1_frag_string(const int cfa_id, const int cfa_var_id,
+//                              const size_t *frag_location,
+//                              const size_t *data_location,
+//                              const char *term,
+//                              char *data);
 
 /* info / output command - output the structure of a container, including the
 dimensions, variables and any sub-containers

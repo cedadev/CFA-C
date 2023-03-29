@@ -877,11 +877,38 @@ cfa_var_put1_frag_string(const int cfa_id, const int cfa_var_id,
 extern int cfa_netcdf_read1_frag(const int, const int, const int, 
                                  const Fragment*);
 
+/* get a FragmentDatum from a Fragment by name */
+int 
+_cfa_var_get_frag_datum(const Fragment *frag, const char *term,
+                        const FragmentDatum **ret_frag_dat)
+{
+    /* get the number of FragmentDatums */
+    int n_fds;
+    DynamicArray *frag_dat_array = frag->cfa_fragdatsp;
+    int cfa_err = get_array_length(&frag_dat_array, &n_fds);
+    CFA_CHECK(cfa_err);
+    
+    /* Loop over to find the FragmentDatum with the matching term */
+    const FragmentDatum *frag_dat;
+    for (int fd=0; fd<n_fds; fd++)
+    {
+        cfa_err = get_array_node(&frag_dat_array, fd, (void**)(&frag_dat));
+        CFA_CHECK(cfa_err);
+        if (frag_dat->term && strcmp(frag_dat->term, term) == 0)
+        {
+            *ret_frag_dat = frag_dat;
+            return CFA_NOERR;
+        }
+    }
+    return CFA_VAR_FRAGDAT_NOT_FOUND;
+}
+
 int 
 cfa_var_get1_frag(const int cfa_id, const int cfa_var_id,
                   const size_t *frag_location,
                   const size_t *data_location,
-                  const Fragment **ret_frag)
+                  const char *term,
+                  void **data)
 {
     /* get the variable */
     AggregationVariable *agg_var = NULL;
@@ -917,47 +944,22 @@ cfa_var_get1_frag(const int cfa_id, const int cfa_var_id,
                 cfa_err = cfa_netcdf_read1_frag(agg_cont->x_id, cfa_id, 
                                                 cfa_var_id, frag);
                 CFA_CHECK(cfa_err);
-                *ret_frag = frag;
             break;
             case CFA_UNKNOWN:
             default:
                 return CFA_UNKNOWN_FILE_FORMAT;
         }
     }
-    else
-    {
-        /* return the already read in fragment */
-        *ret_frag = frag;
-    }
-
+    /* get the frag datum */
+    const FragmentDatum *frag_dat;
+    cfa_err = _cfa_var_get_frag_datum(frag, term, &frag_dat);
+    CFA_CHECK(cfa_err);
+    /* assign the data to the return variable */
+    *data = frag_dat->data;
+ 
     return CFA_NOERR;
 }
 
-/* get a FragmentDatum from a Fragment by name */
-int 
-cfa_var_get_frag_datum(const Fragment *frag, const char *term,
-                       const FragmentDatum **ret_frag_dat)
-{
-    /* get the number of FragmentDatums */
-    int n_fds;
-    DynamicArray *frag_dat_array = frag->cfa_fragdatsp;
-    int cfa_err = get_array_length(&frag_dat_array, &n_fds);
-    CFA_CHECK(cfa_err);
-    
-    /* Loop over to find the FragmentDatum with the matching term */
-    const FragmentDatum *frag_dat;
-    for (int fd=0; fd<n_fds; fd++)
-    {
-        cfa_err = get_array_node(&frag_dat_array, fd, (void**)(&frag_dat));
-        CFA_CHECK(cfa_err);
-        if (frag_dat->term && strcmp(frag_dat->term, term) == 0)
-        {
-            *ret_frag_dat = frag_dat;
-            return CFA_NOERR;
-        }
-    }
-    return CFA_VAR_FRAGDAT_NOT_FOUND;
-}
 
 /*
 free the memory used by the CFA variables

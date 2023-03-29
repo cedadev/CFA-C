@@ -1065,6 +1065,8 @@ write out a single fragment - this can be called from either
 _serialise_cfa_fragments_netcdf below, as part of the serialisation, or
 cfa_var_put1_frag if the serialisation has already taken place
 */
+extern int _cfa_var_get_frag_datum(const Fragment*, const char*,
+                                   const FragmentDatum**);
 int
 cfa_netcdf_write1_frag(const int nc_id, 
                        const int cfa_id, const int cfa_varid,
@@ -1092,7 +1094,7 @@ cfa_netcdf_write1_frag(const int nc_id,
         agg_inst = &(agg_var->cfa_instr[i]);
         /* get the FragmentDatum from the Fragment using the term from the
            AggregationInstruction */
-        cfa_err = cfa_var_get_frag_datum(frag, agg_inst->term, &frag_dat);
+        cfa_err = _cfa_var_get_frag_datum(frag, agg_inst->term, &frag_dat);
         if (cfa_err == CFA_NOERR)
         {
             cfa_err = _get_nc_grp_var_ids_from_str(
