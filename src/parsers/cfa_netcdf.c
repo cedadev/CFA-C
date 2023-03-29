@@ -676,7 +676,7 @@ cfa_netcdf_read1_frag(const int nc_id,
     int frag_var_id;    /* variable and group ids for the variable containing */
     int frag_grp_id;    /* the fragment info */
     /* Read location */
-    char* data = cfa_malloc(1024);
+    void *data = cfa_malloc(1024);
 
     /* AggInst pointer to be rewritten every loop */
     AggregationInstruction *agg_inst;
@@ -714,18 +714,91 @@ cfa_netcdf_read1_frag(const int nc_id,
         {
             /* Read the FragmentDatum value (of any type) from the fragment in 
             the netCDF file */
-            cfa_err = nc_get_var1(
-                frag_grp_id, frag_var_id, frag->index, (void**)(&data)
-            );
-            CFA_CHECK(cfa_err);
             int length = 1;
+
+            /* Use the specific type netCDF functions to read the data */
+            switch (agg_inst->type.type)
+            {
+                case CFA_NAT:
+                    return CFA_NAT_ERR;
+                case CFA_BYTE:
+                    cfa_err = nc_get_var1_schar(
+                        frag_grp_id, frag_var_id, frag->index, 
+                        (signed char*)data
+                    );
+                    break;
+                case CFA_CHAR:
+                    cfa_err = nc_get_var1_uchar(
+                        frag_grp_id, frag_var_id, frag->index, 
+                        (unsigned char*)data
+                    );
+                    break;
+                case CFA_SHORT:
+                    cfa_err = nc_get_var1_short(
+                        frag_grp_id, frag_var_id, frag->index, 
+                        (short int*)data
+                    );
+                    break;
+                case CFA_INT:   /* Also CFA_LONG */
+                    cfa_err = nc_get_var1_int(
+                        frag_grp_id, frag_var_id, frag->index, 
+                        (int*)data
+                    );
+                    break;
+                case CFA_FLOAT:
+                    cfa_err = nc_get_var1_float(
+                        frag_grp_id, frag_var_id, frag->index, (float*)data
+                    );
+                    break;
+                case CFA_DOUBLE:
+                    cfa_err = nc_get_var1_double(
+                        frag_grp_id, frag_var_id, frag->index, (double*)data
+                    );
+                    break;
+                case CFA_UBYTE:
+                    cfa_err = nc_get_var1_ubyte(
+                        frag_grp_id, frag_var_id, frag->index, 
+                        (unsigned char*)data
+                    );
+                    break;
+                case CFA_USHORT:
+                    cfa_err = nc_get_var1_ushort(
+                        frag_grp_id, frag_var_id, frag->index, 
+                        (unsigned short*)data
+                    );
+                    break;
+                case CFA_UINT:
+                    cfa_err = nc_get_var1_uint(
+                        frag_grp_id, frag_var_id, frag->index, 
+                        (unsigned int*)data
+                    );
+                    break;
+                case CFA_INT64:
+                    cfa_err = nc_get_var1_longlong(
+                        frag_grp_id, frag_var_id, frag->index, 
+                        (long long*)data
+                    );
+                    break;
+                case CFA_UINT64:
+                    cfa_err = nc_get_var1_ulonglong(
+                        frag_grp_id, frag_var_id, frag->index, 
+                        (unsigned long long*)data
+                    );
+                    break;
+                case CFA_STRING:
+                    cfa_err = nc_get_var1_string(
+                        frag_grp_id, frag_var_id, frag->index, 
+                        (char**)(&data)
+                    );
+                    length = strlen(data) + 1;
+                    break;
+            };
+            CFA_CHECK(cfa_err);
             /* get the length if a string, otherwise length is 1 as above */
-            if (agg_inst->type.type == CFA_STRING)
-                length = strlen(data) + 1;
             cfa_err = _cfa_var_assign_datum_to_frag(
                 agg_var, frag, agg_inst->term, data, length
             );
-            CFA_CHECK(cfa_err)
+            CFA_CHECK(cfa_err);
         }
     }
     cfa_free(data, 1024);
@@ -1026,11 +1099,84 @@ cfa_netcdf_write1_frag(const int nc_id,
                 nc_id, agg_inst->value, &grp_id, &var_id
             );
             CFA_CHECK(cfa_err);
-            /* special case for strings - why? */
-            const void *data = frag_dat->data;
-            if (agg_inst->type.type == CFA_STRING)
-                data = &(frag_dat)->data;
-            cfa_err = nc_put_var1(grp_id, var_id, frag->index, data);
+            /* Use the specific type netCDF functions to write the data */
+            switch (agg_inst->type.type)
+            {
+                case CFA_NAT:
+                    return CFA_NAT_ERR;
+                case CFA_BYTE:
+                    cfa_err = nc_put_var1_schar(
+                        grp_id, var_id, frag->index, 
+                        (signed char*)(frag_dat->data)
+                    );
+                    break;
+                case CFA_CHAR:
+                    cfa_err = nc_put_var1_uchar(
+                        grp_id, var_id, frag->index,
+                        (unsigned char*)(frag_dat->data)
+                    );
+                    break;
+                case CFA_SHORT:
+                    cfa_err = nc_put_var1_short(
+                        grp_id, var_id, frag->index, 
+                        (short int*)(frag_dat->data)
+                    );
+                    break;
+                case CFA_INT:   /* Also CFA_LONG */
+                    cfa_err = nc_put_var1_int(
+                        grp_id, var_id, frag->index, 
+                        (int*)(frag_dat->data)
+                    );
+                    break;
+                case CFA_FLOAT:
+                    cfa_err = nc_put_var1_float(
+                        grp_id, var_id, frag->index, 
+                        (float*)(frag_dat->data)
+                    );
+                    break;
+                case CFA_DOUBLE:
+                    cfa_err = nc_put_var1_double(
+                        grp_id, var_id, frag->index, 
+                        (double*)(frag_dat->data)
+                    );
+                    break;
+                case CFA_UBYTE:
+                    cfa_err = nc_put_var1_ubyte(
+                        grp_id, var_id, frag->index, 
+                        (unsigned char*)(frag_dat->data)
+                    );
+                    break;
+                case CFA_USHORT:
+                    cfa_err = nc_put_var1_ushort(
+                        grp_id, var_id, frag->index, 
+                        (unsigned short*)(frag_dat->data)
+                    );
+                    break;
+                case CFA_UINT:
+                    cfa_err = nc_put_var1_uint(
+                        grp_id, var_id, frag->index, 
+                        (unsigned int*)(frag_dat->data)
+                    );
+                    break;
+                case CFA_INT64:
+                    cfa_err = nc_put_var1_longlong(
+                        grp_id, var_id, frag->index, 
+                        (long long*)(frag_dat->data)
+                    );
+                    break;
+                case CFA_UINT64:
+                    cfa_err = nc_put_var1_ulonglong(
+                        grp_id, var_id, frag->index, 
+                        (unsigned long long*)(frag_dat->data)
+                    );
+                    break;
+                case CFA_STRING:
+                    cfa_err = nc_put_var1_string(
+                        grp_id, var_id, frag->index, 
+                        (const char**)(&(frag_dat->data))
+                    );
+                    break;
+            };
             CFA_CHECK(cfa_err);
         }
     }
