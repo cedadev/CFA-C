@@ -887,7 +887,7 @@ _cfa_var_get_frag_datum(const Fragment *frag, const char *term,
     DynamicArray *frag_dat_array = frag->cfa_fragdatsp;
     int cfa_err = get_array_length(&frag_dat_array, &n_fds);
     CFA_CHECK(cfa_err);
-    
+
     /* Loop over to find the FragmentDatum with the matching term */
     const FragmentDatum *frag_dat;
     for (int fd=0; fd<n_fds; fd++)
@@ -968,7 +968,7 @@ cfa_var_get1_frag(const int cfa_id, const int cfa_var_id,
         cfa_err = _cfa_var_get_frag_datum(frag, term, &frag_dat);
         CFA_CHECK(cfa_err);
         /* assign the data to the return variable */
-        *data = frag_dat->data;
+        *((char**)(data)) = (char*)(frag_dat->data);
     }
  
     return CFA_NOERR;
@@ -1028,7 +1028,7 @@ _cfa_free_fragments(AggregationVariable *agg_var)
                 if (cfrag->location)
                 {
                     cfa_free(cfrag->location, 
-                             sizeof(size_t) * agg_var->cfa_ndim * 2);
+                             (sizeof(size_t) << 1) * agg_var->cfa_ndim);
                 }
                 /* free index array */
                 if (cfrag->index)

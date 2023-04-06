@@ -34,8 +34,11 @@ _is_cfa_netcdf_file(const int ncid)
     if (!strstr(convention, CFA_CONVENTION))
         return CFA_NOT_CFA_FILE;
 
-    /* check that CFA_VERSION is a substring in convention */
-    if (!strstr(convention, CFA_VERSION))
+    /* check that CFA_VERSION major and minor versions are substrings in 
+    convention */
+    char version[4];
+    sprintf(version, "%i.%i", CFA_MAJOR_VERSION, CFA_MINOR_VERSION);
+    if (!strstr(convention, version))
         return CFA_UNSUPPORTED_VERSION;
     return CFA_NOERR;
 }
@@ -153,7 +156,7 @@ _get_nc_grp_id_from_str(const int nc_id, const char *in_str, int *ret_grp_id)
     various groups, e.g. /group1/group2/var1
     */
     char grpname[STR_LENGTH] = "";
-    int orig_str_len = strlen(in_str);
+    int orig_str_len = strlen(in_str)+1;
     int strpos = 0;
     int pgrp_id = -1;
     int cfa_err = CFA_NOERR;
@@ -223,6 +226,10 @@ _get_key_and_value_from_att_str(const char* att_str, char* key, char* value)
 {
     /* use sscanf to search for 2 strings, the key and value */
     char* c_str_ptr = (char*)(att_str);
+     /* ignore any whitespace */
+    while (*c_str_ptr == ' ' || *c_str_ptr == '\n')
+        c_str_ptr++;
+
     int n_strs = sscanf(c_str_ptr, "%s %s", key, value);
     /* if not 2 strings then return */
     if (n_strs < 2)
@@ -676,11 +683,11 @@ cfa_netcdf_read1_frag(const int nc_id,
     int frag_var_id;    /* variable and group ids for the variable containing */
     int frag_grp_id;    /* the fragment info */
     /* Read location */
-    void *data = cfa_malloc(1024);
 
     /* AggInst pointer to be rewritten every loop */
     AggregationInstruction *agg_inst;
 
+    void *data = cfa_malloc(1024);
     for (int i=0; i<agg_var->n_instr; i++)
     {
         agg_inst = &(agg_var->cfa_instr[i]);
@@ -788,7 +795,7 @@ cfa_netcdf_read1_frag(const int nc_id,
                 case CFA_STRING:
                     cfa_err = nc_get_var1_string(
                         frag_grp_id, frag_var_id, frag->index, 
-                        (char**)(&data)
+                        (char**)&data
                     );
                     length = strlen(data) + 1;
                     break;
@@ -799,6 +806,7 @@ cfa_netcdf_read1_frag(const int nc_id,
                 agg_var, frag, agg_inst->term, data, length
             );
             CFA_CHECK(cfa_err);
+            /* clean up memory allocated by netCDF library */
         }
     }
     cfa_free(data, 1024);
@@ -809,27 +817,23 @@ cfa_netcdf_read1_frag(const int nc_id,
 load and parse a CFA-netCDF file
 */
 int 
-parse_cfa_netcdf_file(const char *path, int *cfa_idp)
+parse_cfa_netcdf_file(const char* path, const int ncid, int *cfaidp)
 {
-    /* open the file first, using the netCDF library, in read only mode */
-    int ncid = -1;
-    int err = nc_open(path, NC_NOWRITE, &ncid);
-    CFA_CHECK(err);
     /* check this is a valid CFA-netCDF file by checking the metadata */
-    err = _is_cfa_netcdf_file(ncid);
+    int err = _is_cfa_netcdf_file(ncid);
     CFA_CHECK(err);
 
     /* create the netCDF-CFA container */
-    err = cfa_create(path, CFA_NETCDF, cfa_idp);
+    err = cfa_create(path, CFA_NETCDF, cfaidp);
     CFA_CHECK(err);
 
     /* enter the recursive parser with the root group / container */
-    err = _parse_cfa_container_netcdf(ncid, *cfa_idp);
+    err = _parse_cfa_container_netcdf(ncid, *cfaidp);
     CFA_CHECK(err);
     
     /* get the root aggregation container and add the external id to it */
     AggregationContainer *agg_cont = NULL;
-    err = cfa_get(*cfa_idp, &agg_cont);
+    err = cfa_get(*cfaidp, &agg_cont);
     CFA_CHECK(err);
     agg_cont->x_id = ncid;
 
@@ -1465,22 +1469,10 @@ _serialise_cfa_container_netcdf(const int nc_id, const int cfa_id)
 }
 
 /*
-create the netCDF file 
-*/
-int 
-create_cfa_netcdf_file(const char *path, int *ncidp)
-{
-    /* create the netCDF file to save the CFA info into */
-    int cfa_err = nc_create(path, NC_NETCDF4|NC_CLOBBER, ncidp);
-    CFA_CHECK(cfa_err);
-    return CFA_NOERR;
-}
-
-/*
 write cfa structures into existing netCDF file
 */
 int
-serialise_cfa_netcdf_file(const int cfa_id)
+serialise_cfa_netcdf_file(const int ncid, const int cfa_id)
 {
     /* get the container to get the external id (x_id) */
     AggregationContainer *agg_cont = NULL;
@@ -1492,8 +1484,7 @@ serialise_cfa_netcdf_file(const int cfa_id)
         switch (agg_cont->format)
         {
             case CFA_NETCDF:
-                err = create_cfa_netcdf_file(agg_cont->path, &(agg_cont->x_id));
-                CFA_CHECK(err); 
+                agg_cont->x_id = ncid;
                 break;
             default:
                 return CFA_UNKNOWN_FILE_FORMAT;
@@ -1508,21 +1499,14 @@ serialise_cfa_netcdf_file(const int cfa_id)
     char conventions[STR_LENGTH] = "";
     /* CFA-n.m */
     strcat(conventions, CFA_CONVENTION);
-    strcat(conventions, CFA_VERSION);
+    char version[6];
+    sprintf(version, "%i.%i.%i", 
+            CFA_MAJOR_VERSION, CFA_MINOR_VERSION, CFA_REVISION
+        );
+    strcat(conventions, version);
     /* write the netCDF attribute */
     err = nc_put_att_text(agg_cont->x_id, NC_GLOBAL, CONVENTIONS,
                           strlen(conventions)+1, conventions);
-    CFA_CHECK(err);
-    return CFA_NOERR;
-}
-
-/* 
-Close the cfa_netcdf file with the netCDF id ncid
-*/
-int 
-close_cfa_netcdf_file(int ncid)
-{
-    int err = nc_close(ncid);
     CFA_CHECK(err);
     return CFA_NOERR;
 }

@@ -80,8 +80,12 @@ example3_save(void)
                                        "address", "temp2");
     CFA_ERR(cfa_err);
 
-    /* write out the initial structures, variables, etc */
-    cfa_err = cfa_serialise(cfa_id);
+    /* write out the initial structures, variables, etc 
+       now have to open a netCDF file first */
+    cfa_err = nc_create(example3_path, NC_NETCDF4|NC_CLOBBER, &nc_id);
+    CFA_CHECK(cfa_err);
+
+    cfa_err = cfa_serialise(cfa_id, nc_id);
     CFA_ERR(cfa_err);
 
     /* once the CFA structure(s) have been serialised we can add the metadata
@@ -222,6 +226,10 @@ example3_save(void)
     cfa_err = cfa_memcheck();
     CFA_ERR(cfa_err);
 
+    /* close the netCDF file */
+    cfa_err = nc_close(nc_id);
+    CFA_ERR(cfa_err);
+
     return CFA_NOERR;
 }
 
@@ -230,10 +238,15 @@ example3_load(void)
 {
     int cfa_err = -1;
     int cfa_id = -1;
+    int nc_id = -1;
     printf("Example 3 test load\n");
-    
+
+    /* open the netCDF file */
+    cfa_err = nc_open(example3_path, NC_NOWRITE, &nc_id);
+    CFA_ERR(cfa_err);
+
     /* load and parse */
-    cfa_err = cfa_load(example3_path, CFA_NETCDF, &cfa_id);
+    cfa_err = cfa_load(example3_path, nc_id, CFA_NETCDF, &cfa_id);
     CFA_ERR(cfa_err);
 
     /* get the "temp" variable id */
@@ -245,23 +258,18 @@ example3_load(void)
     size_t frag_location[4];
     frag_location[0] = 0; frag_location[1] = 0; 
     frag_location[2] = 0; frag_location[3] = 0;
-    const Fragment *frag = NULL;
-    cfa_err = cfa_var_get1_frag(cfa_id, cfa_var_id, 
-                                frag_location, NULL,
-                                &frag);
+    char* address = NULL;
+    cfa_err = cfa_var_get1_frag(cfa_id, cfa_var_id, frag_location, NULL, 
+                                "address", (void**)(&address));
     CFA_ERR(cfa_err);
+    printf("%s %s \n", "address", address);
     /* get the second Fragment */
     frag_location[0] = 1; frag_location[1] = 0; 
     frag_location[2] = 0; frag_location[3] = 0;
-    cfa_err = cfa_var_get1_frag(cfa_id, cfa_var_id,
-                                frag_location, NULL,
-                                &frag);
+    cfa_err = cfa_var_get1_frag(cfa_id, cfa_var_id, frag_location, NULL,
+                                "address", (void**)(&address));
     CFA_ERR(cfa_err);
-
-    const FragmentDatum *fd;
-    cfa_err = cfa_var_get_frag_datum(frag, "file", &fd);
-    CFA_ERR(cfa_err);
-    printf("%s %s \n", fd->term, (char*)(fd->data));
+    printf("%s %s \n", "address", address);
     /* output info */
     cfa_err = cfa_info(cfa_id, 0);
     CFA_ERR(cfa_err);
@@ -273,6 +281,11 @@ example3_load(void)
     /* check for memory leaks */
     cfa_err = cfa_memcheck();
     CFA_ERR(cfa_err);
+
+    /* close the netCDF file */
+    cfa_err = nc_close(nc_id);
+    CFA_ERR(cfa_err);
+
     return CFA_NOERR;
 }
 

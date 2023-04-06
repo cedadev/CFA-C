@@ -62,8 +62,6 @@ int cfa_info_cont(const int cfa_id, const int level, const int indent)
     AggregationContainer *agg_cont;
     int cfa_err = cfa_get(cfa_id, &agg_cont);
     CFA_CHECK(cfa_err);
-    if(agg_cont->path)
-        printf("%*sCFA: %s\n", indent, "", agg_cont->path);
     if(agg_cont->name)
         printf("%*s%s\n", indent, "", agg_cont->name);
     printf(

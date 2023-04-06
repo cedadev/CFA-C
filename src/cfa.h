@@ -1,6 +1,10 @@
 #ifndef __CFA_H__
 #define __CFA_H__
 
+#ifdef __clang_analyzer__
+#define cfa_free free
+#endif
+
 #include <stdio.h>
 #include <stdbool.h>
 #include <netcdf.h>
@@ -11,7 +15,10 @@
 
 /* CFA metadata identifier string */
 #define CFA_CONVENTION ("CFA-")
-#define CFA_VERSION    ("0.6.2")
+#define CFA_MAJOR_VERSION 0
+#define CFA_MINOR_VERSION 6
+#define CFA_REVISION      1
+
 #define CONVENTIONS    ("Conventions")
 #define AGGREGATED_DIMENSIONS ("aggregated_dimensions")
 #define AGGREGATED_DATA ("aggregated_data")
@@ -128,14 +135,15 @@ struct AggregationContainer {
 extern int cfa_create(const char *path, CFAFileFormat format, int *cfa_idp);
 
 /* load a CFA-netCDF file into an AggegrationContainer and assign it a cfaid */
-extern int cfa_load(const char *path, CFAFileFormat format, int *cfa_idp);
+extern int cfa_load(const char *path, int x_id, CFAFileFormat format, 
+                    int *cfa_idp);
 
 /* get the external file id */
 extern int cfa_get_ext_file_id(const int cfa_id, int *x_id);
 
 /* serialise (save) the AggregationContainer into a CFA file.  The format will
 depend on the CFAFileFormat argument passed into the cfa_create method */
-extern int cfa_serialise(const int cfa_id);
+extern int cfa_serialise(const int cfa_id, const int x_id);
 
 /* get the id of a AggregationContainer */
 extern int cfa_inq_id(const char *path, int *cfa_idp);
@@ -265,7 +273,7 @@ dimensions, variables and any sub-containers
 */
 extern int cfa_info(const int cfa_id, const int level);
 
-#define CFA_ERR(cfa_err) if(cfa_err) {if (cfa_err > -500) printf("NC error: %i\n", cfa_err); else printf("CFA error %i\n", cfa_err); return cfa_err;}
+#define CFA_ERR(cfa_err) if(cfa_err) {if (cfa_err > -500) printf("NetCDF error: %i\n", cfa_err); else printf("CFA error %i\n", cfa_err); return cfa_err;}
 #define CFA_CHECK(cfa_err) if(cfa_err) {return cfa_err;}
 
 #endif

@@ -4,12 +4,12 @@
 #include <string.h>
 
 #include "cfa.h"
-const char* example1_path = "examples/test/example1b.nc";
+const char* example1b_path = "examples/test/example1b.nc";
 
 int
-example1_save(void)
+example1b_save(void)
 {
-    printf("Example 1 test save\n");
+    printf("Example 1b test save\n");
     /* recreate example 1 from the documentation */
     int cfa_err = -1;
     int cfa_id = -1;
@@ -18,7 +18,7 @@ example1_save(void)
     int nc_id = -1;
 
     /* create the CFA parent container */
-    cfa_err = cfa_create(example1_path, CFA_NETCDF, &cfa_id);
+    cfa_err = cfa_create(example1b_path, CFA_NETCDF, &cfa_id);
     CFA_ERR(cfa_err);
 
     /* define the CFA dimensions */
@@ -62,14 +62,19 @@ example1_save(void)
     cfa_err = cfa_var_def_frag_num(cfa_id, cfa_varid, frags);
     CFA_ERR(cfa_err);
 
-    /* write out the initial structures, variables, etc */
-    cfa_err = cfa_serialise(cfa_id);
+    /* write out the initial structures, variables, etc 
+       now have to open a netCDF file first */
+    cfa_err = nc_create(example1b_path, NC_NETCDF4|NC_CLOBBER, &nc_id);
+    CFA_CHECK(cfa_err);
+
+    cfa_err = cfa_serialise(cfa_id, nc_id);
     CFA_ERR(cfa_err);
 
     /* add the first Fragment */
     size_t frag_location[4];
     frag_location[0] = 0; frag_location[1] = 0; 
     frag_location[2] = 0; frag_location[3] = 0;
+
     /* put each AggregationInstruction individually */
     cfa_err = cfa_var_put1_frag_string(cfa_id, cfa_varid, frag_location, NULL,
                                        "file", "January-June.nc");
@@ -94,10 +99,6 @@ example1_save(void)
     CFA_ERR(cfa_err);
     cfa_err = cfa_var_put1_frag_string(cfa_id, cfa_varid, frag_location, NULL,
                                 "tracking_id", "a4f8deb3-fae1-26b6");
-    CFA_ERR(cfa_err);
-
-    /* output info */
-    cfa_err = cfa_info(cfa_id, 0);
     CFA_ERR(cfa_err);
 
     /* get the netCDF file ID stored internally in the CFA AggregationContainer
@@ -207,18 +208,27 @@ example1_save(void)
     cfa_err = cfa_memcheck();
     CFA_ERR(cfa_err);
 
+    /* close the netCDF file */
+    cfa_err = nc_close(nc_id);
+    CFA_ERR(cfa_err);
+
     return CFA_NOERR;
 }
 
 int
-example1_load(void)
+example1b_load(void)
 {
     int cfa_err = -1;
     int cfa_id = -1;
-    printf("Example 1 test load\n");
-    
-    /* load and parse */
-    cfa_err = cfa_load(example1_path, CFA_NETCDF, &cfa_id);
+    int nc_id = -1;
+    printf("Example 1b test load\n");
+
+    /* open the netCDF file */
+    cfa_err = nc_open(example1b_path, NC_NOWRITE, &nc_id);
+    CFA_ERR(cfa_err);
+
+    /* parse */
+    cfa_err = cfa_load(example1b_path, nc_id, CFA_NETCDF, &cfa_id);
     CFA_ERR(cfa_err);
 
     /* get the "temp" variable id */
@@ -230,18 +240,22 @@ example1_load(void)
     size_t frag_location[4];
     frag_location[0] = 0; frag_location[1] = 0; 
     frag_location[2] = 0; frag_location[3] = 0;
-    const Fragment *frag = NULL;
-    cfa_err = cfa_var_get1_frag(cfa_id, cfa_var_id, 
-                                frag_location, NULL,
-                                &frag);    
+    size_t temp_location[8];
+    cfa_err = cfa_var_get1_frag(cfa_id, cfa_var_id, frag_location, NULL,
+                                "location", (void**)(&temp_location));
+    CFA_ERR(cfa_err);
+    char *file = NULL;
+    cfa_err = cfa_var_get1_frag(cfa_id, cfa_var_id, frag_location, NULL,
+                                "file", (void**)(&file));
+    CFA_ERR(cfa_err);
 
     /* get the fragment by data location*/
     size_t data_location[4];
     data_location[0] = 6; data_location[1] = 0; 
     data_location[2] = 0; data_location[3] = 0;
-    cfa_err = cfa_var_get1_frag(cfa_id, cfa_var_id, 
-                                NULL, data_location,
-                                &frag);
+    cfa_err = cfa_var_get1_frag(cfa_id, cfa_var_id, NULL, data_location,
+                                "index", (void**)(&temp_location));
+    CFA_ERR(cfa_err);
     /* output info */
     cfa_err = cfa_info(cfa_id, 0);
     CFA_ERR(cfa_err);
@@ -253,6 +267,11 @@ example1_load(void)
     /* check the memory for leaks */
     cfa_err = cfa_memcheck();
     CFA_ERR(cfa_err);
+
+    /* close the netCDF file */
+    cfa_err = nc_close(nc_id);
+    CFA_ERR(cfa_err);
+
     return CFA_NOERR;
 }
 
@@ -266,9 +285,9 @@ main(int argc, char *argv[])
         return 1;
     }
     if (strcmp(argv[1], "S") == 0)
-        example1_save();
+        example1b_save();
     else if (strcmp(argv[1], "L") == 0)
-        example1_load();
+        example1b_load();
     else
     {
         printf("Unknown argument\n");
