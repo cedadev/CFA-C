@@ -1373,11 +1373,11 @@ _serialise_cfa_aggregation_instructions(int nc_id, int nc_varid,
         strcat(agg_instr, pinstr->value);
         strcat(agg_instr, " ");
     }
-    /* remove the final space */
+    /* remove the final space and set to string terminator */
     agg_instr[strlen(agg_instr)-1] = '\0';
     /* write the netCDF attribute */
     err = nc_put_att_text(nc_id, nc_varid, AGGREGATED_DATA,
-                            strlen(agg_instr)+1, agg_instr);
+                          strlen(agg_instr)+1, agg_instr);
     CFA_CHECK(err);
     return CFA_NOERR;
 }
@@ -1508,5 +1508,6 @@ serialise_cfa_netcdf_file(const int ncid, const int cfa_id)
     err = nc_put_att_text(agg_cont->x_id, NC_GLOBAL, CONVENTIONS,
                           strlen(conventions)+1, conventions);
     CFA_CHECK(err);
+
     return CFA_NOERR;
 }

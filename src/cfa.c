@@ -89,7 +89,7 @@ cfa_get_ext_file_id(const int cfa_id, int *x_id)
 }
 
 /*
-serialise the CFA file
+serialise the CFA file  
 */
 int
 cfa_serialise(const int cfa_id, const int x_id)
@@ -211,14 +211,13 @@ int cfa_close(const int cfa_id)
     /* check that it is valid */
     CFA_CHECK(cfa_err);
 
-    /* close the file handled outside now*/
-
+    /* close the file handled outside now */
     if (cfa_node)
     {
         /* free containers */
         cfa_err = cfa_free_cont(cfa_id);
         CFA_CHECK(cfa_err);
-   }
+    }
     return CFA_NOERR;
 }
 

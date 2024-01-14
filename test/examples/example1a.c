@@ -90,9 +90,12 @@ example1a_save(void)
     CFA_ERR(cfa_err);
 
     /* get the netCDF file ID stored internally in the CFA AggregationContainer
-    */
-    cfa_err = cfa_get_ext_file_id(cfa_id, &nc_id);
+       this should match the previous nc_id. It's not necessary to get this id during
+       normal operation, but it serves as a good test here */
+    int nc_id2;
+    cfa_err = cfa_get_ext_file_id(cfa_id, &nc_id2);
     CFA_ERR(cfa_err);
+    assert(nc_id == nc_id2);
 
     /* once the CFA structure(s) have been serialised we can add the metadata
     to the netCDF variables that have been created during the serialisation */

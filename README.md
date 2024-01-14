@@ -2,7 +2,7 @@ CFA-C
 =====
 
 This repository contains a C library reference implementation of the
-[CFA-Conventions v0.6.](https://github.com/NCAS-CMS/cfa-conventions/blob/master/source/cfa.md)
+[CFA-Conventions v0.6.2](https://github.com/NCAS-CMS/cfa-conventions/blob/master/source/cfa.md)
 
 From that website, the CFA conventions are described as:
 
@@ -48,7 +48,7 @@ Installation
     4b.  For example, to build `test/examples/example1a.c` use the command `make example1a`.
 
     4c.  The example will have been built at `build/examples/example1a`.  To run it use the command `build/examples/example1a S` (to **S**ave/create the file) and
-    `build/examples/example1b L` to load the file.
+    `build/examples/example1b L` to **L**oad the file.
 
     4d.  The output file for `example1a` will be written to `examples/test/example1a.nc`.  The `ncdump` command, installed with the netCDF library, can be used to examine the contents of the file: `ncdump -h examples/test/example1a.nc`.
 
