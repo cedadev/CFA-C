@@ -930,12 +930,12 @@ cfa_var_get1_frag(const int cfa_id, const int cfa_var_id,
                              (void**)(&frag));
     CFA_CHECK(cfa_err);
     frag->linear_index = L;
-
     /* if the fragment location is NULL then we have to fetch the fragment from
     the Parser */
     AggregationContainer *agg_cont = NULL;
     cfa_err = cfa_get(cfa_id, &agg_cont);
     CFA_CHECK(cfa_err);
+
     if (frag->location == NULL)
     {
         switch (agg_cont->format)
