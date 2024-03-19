@@ -212,7 +212,7 @@ example1a_load(void)
     int cfa_err = -1;
     int cfa_id = -1;
     int nc_id = -1;
-    printf("Example 1a test load\n");
+    printf("Example 1a load\n");
     
     /* open the netCDF file */
     cfa_err = nc_open(example1a_path, NC_NOWRITE, &nc_id);
@@ -221,6 +221,23 @@ example1a_load(void)
     /* parse */
     cfa_err = cfa_load(example1a_path, nc_id, CFA_NETCDF, &cfa_id);
     CFA_ERR(cfa_err);
+
+    printf("----------------")
+
+    /* Note: here we could call cfa_info, to output information about the CFA file
+    However, it wouldn't be instructive, so we are going to go through the file and
+    output information that could be seen by cfa_info, as well as show the fragment
+    information.  Follow these steps for each example:
+    1. Print the global CFA AggregatedDimension(s)
+    2. Print the AggregatedVariable (temp)
+    3. Print the variable CFA AggregatedDimension(s)
+    */
+    
+    /* Print the global CFA Aggregate Dimensions */
+
+    printf("GLOBAL AGGREGATED DIMENSIONS: ")
+
+    int cfa_dim_id = -1;
 
     /* get the "temp" variable id */
     int cfa_var_id = -1;
