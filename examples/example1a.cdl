@@ -1,6 +1,6 @@
 netcdf {
 
-  // Example 1
+  // Example 1a
   // An aggregated data variable whose aggregated data comprises two fragments.
   // Each fragment spans half of the aggregated time dimension and the whole of
   // the other three aggregated dimensions, and is stored in an external netCDF
@@ -52,7 +52,7 @@ netcdf {
     string aggregation_address(f_time, f_level, f_latitude, f_longitude) ;
 
   // global attributes:
-    :Conventions = "CF-1.9 CFA-0.6" ;
+    :Conventions = "CF-1.10 CFA-0.6.2" ;
   data:
     temp = _ ;
     time = 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334 ;

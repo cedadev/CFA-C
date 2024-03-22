@@ -17,7 +17,7 @@ int cfa_info_var(const int cfa_id, const int cfa_varid,
     CFA_CHECK(cfa_err);
 
     const char* typename = get_type_name(agg_var->cfa_dtype.type);
-    printf("%*s%s %-20s   : (", indent, "", typename, agg_var->name);
+    printf("%*s%-18s%-24s: (", indent, "", typename, agg_var->name);
     /* print the attached dimensions */
     for (int d=0; d<agg_var->cfa_ndim; d++)
     {
@@ -29,14 +29,12 @@ int cfa_info_var(const int cfa_id, const int cfa_varid,
     }
     printf(")\n");
     /* print the aggregation instructions */
-    printf("%*s  File    %-19s : %s\n", indent, "", "",
-            agg_var->cfa_instructionsp->file);
-    printf("%*s  Format  %-19s : %s\n", indent, "", "",
-            agg_var->cfa_instructionsp->format);
-    printf("%*s  Address %-19s : %s\n", indent, "", "",
-            agg_var->cfa_instructionsp->address);
-    printf("%*s  Location %-19s: %s\n", indent, "", "",
-            agg_var->cfa_instructionsp->location);
+    for (int i=0; i<agg_var->n_instr; i++)
+    {
+        AggregationInstruction *pinst = &(agg_var->cfa_instr[i]);
+        printf("%*s%-18s%-24s: %s\n", indent, "", "", 
+               pinst->term, pinst->value);
+    }
     return CFA_NOERR;
 }
 
@@ -49,8 +47,8 @@ int cfa_info_dim(const int cfa_id, const int cfa_dimid,
     AggregatedDimension *agg_dim;
     int cfa_err = cfa_get_dim(cfa_id, cfa_dimid, &agg_dim);
     CFA_CHECK(cfa_err);
-    const char* typename = get_type_name(agg_dim->cfa_dtype.type);
-    printf("%*s%s %-22s : (%4i)\n", indent, "", typename, 
+    const char* typename = get_type_name(agg_dim->type.type);
+    printf("%*s%-18s%-24s: (%4i)\n", indent, "", typename, 
            agg_dim->name, agg_dim->length);
     return CFA_NOERR;
 }
@@ -64,11 +62,11 @@ int cfa_info_cont(const int cfa_id, const int level, const int indent)
     AggregationContainer *agg_cont;
     int cfa_err = cfa_get(cfa_id, &agg_cont);
     CFA_CHECK(cfa_err);
-    if(agg_cont->path)
-        printf("%*sCFA: %s\n", indent, "", agg_cont->path);
     if(agg_cont->name)
         printf("%*s%s\n", indent, "", agg_cont->name);
-    printf("%*s=============================================\n", indent, "");
+    printf(
+"%*s========================================================================\n", 
+    indent, "");
 
     /* print the dimensions - if there are any */
     if (agg_cont->n_dims)
@@ -80,7 +78,9 @@ int cfa_info_cont(const int cfa_id, const int level, const int indent)
                                level, indent+4);
             CFA_CHECK(cfa_err);
         }
-        printf("%*s---------------------------------------------\n", indent, "");
+        printf(
+"%*s------------------------------------------------------------------------\n", 
+        indent, "");
     }
     
     /* print the variables - if there are any */
@@ -93,7 +93,9 @@ int cfa_info_cont(const int cfa_id, const int level, const int indent)
                                    level, indent+4);
             CFA_CHECK(cfa_err);
         }
-        printf("%*s---------------------------------------------\n", indent, "");
+        printf(
+"%*s------------------------------------------------------------------------\n", 
+        indent, "");
     }
 
     /* print the containers - if there are any */
@@ -106,7 +108,9 @@ int cfa_info_cont(const int cfa_id, const int level, const int indent)
                                     level, indent+4);
             CFA_CHECK(cfa_err);
         }
-        printf("%*s---------------------------------------------\n", indent, "");
+        printf(
+"%*s------------------------------------------------------------------------\n", 
+        indent, "");
     }
     return CFA_NOERR;
 }

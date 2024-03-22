@@ -42,8 +42,8 @@ cfa_def_dim(const int cfa_id, const char *name, const int len,
     dim_node->name = strdup(name);
 
     /* assign the type */
-    dim_node->cfa_dtype.type = dtype;
-    dim_node->cfa_dtype.size = get_type_size(dtype);
+    dim_node->type.type = dtype;
+    dim_node->type.size = get_type_size(dtype);
 
     /* get the length of the AggregatedDimension array - the id is len-1 */
     int cfa_ndim = 0;

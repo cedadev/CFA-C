@@ -57,7 +57,7 @@ load a file from disk.  We may support different formats of CFA-netCDF files in
 the future, or different file formats to hold the CFA info.
 */
 int 
-cfa_load(const char *path, CFAFileFormat format, int *cfa_idp)
+cfa_load(const char* path, int x_id, CFAFileFormat format, int *cfa_idp)
 {
     int cfa_err = CFA_NOERR;
     switch (format)
@@ -66,7 +66,7 @@ cfa_load(const char *path, CFAFileFormat format, int *cfa_idp)
             return CFA_UNKNOWN_FILE_FORMAT;
         break;
         case CFA_NETCDF:
-            cfa_err = parse_cfa_netcdf_file(path, cfa_idp);
+            cfa_err = parse_cfa_netcdf_file(path, x_id, cfa_idp);
             CFA_CHECK(cfa_err);
         break;
         default:
@@ -89,10 +89,10 @@ cfa_get_ext_file_id(const int cfa_id, int *x_id)
 }
 
 /*
-serialise the CFA file
+serialise the CFA file  
 */
 int
-cfa_serialise(const int cfa_id)
+cfa_serialise(const int cfa_id, const int x_id)
 {
     AggregationContainer *agg_cont;
     int cfa_err = cfa_get(cfa_id, &agg_cont);
@@ -103,7 +103,7 @@ cfa_serialise(const int cfa_id)
             return CFA_UNKNOWN_FILE_FORMAT;
         break;
         case CFA_NETCDF:
-            cfa_err = serialise_cfa_netcdf_file(cfa_id);
+            cfa_err = serialise_cfa_netcdf_file(x_id, cfa_id);
             CFA_CHECK(cfa_err);
             agg_cont->serialised = 1;
         break;
@@ -211,30 +211,13 @@ int cfa_close(const int cfa_id)
     /* check that it is valid */
     CFA_CHECK(cfa_err);
 
-    /* close the file */
-    switch (cfa_node->format)
-    {
-        case CFA_UNKNOWN:
-            return CFA_UNKNOWN_FILE_FORMAT;
-        break;
-        case CFA_NETCDF:
-            if (cfa_node->x_id != -1)
-            {
-                cfa_err = close_cfa_netcdf_file(cfa_node->x_id);
-                CFA_CHECK(cfa_err);
-                cfa_node->x_id = -1;
-            }
-        break;
-        default:
-            return CFA_UNKNOWN_FILE_FORMAT;
-    }
-
+    /* close the file handled outside now */
     if (cfa_node)
     {
         /* free containers */
         cfa_err = cfa_free_cont(cfa_id);
         CFA_CHECK(cfa_err);
-   }
+    }
     return CFA_NOERR;
 }
 
@@ -267,6 +250,8 @@ int get_type_size(const cfa_type type)
             return 8;
         case CFA_UINT64:
             return 8;
+        case CFA_STRING:
+            return 1;  /* same as char, need to pass in string length as well */
         default:
             return 0;
     }
